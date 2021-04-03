@@ -1,0 +1,267 @@
+---
+title: "QC for tfr project"
+output: html_notebook
+---
+
+Loading libraries
+```{r message=FALSE, include=FALSE}
+library(neuralnet)
+library(readxl)
+library(grid)
+library(corrplot)
+library(caret)
+library(e1071)
+library(ROCR)
+library(ggplot2)
+library(GGally)
+library(PerformanceAnalytics)
+library(factoextra)
+library(corrplot)
+library(Rtsne)
+library(FactoMineR)
+library(ggplot2)
+library(factoextra)
+library(survminer)
+library(ggcorrplot)
+library(readr)
+library(circlize)
+library(readxl)
+library(stringr)
+library(reshape)
+library(psych)
+library(ComplexHeatmap)
+library(ggpubr)
+library(readr)
+library(gridExtra)
+library(cowplot)
+library(MASS)
+library(fitdistrplus)
+#BiocManager::install("preprocessCore")
+library(preprocessCore)
+library(MASS)
+library(class)
+library(ggplot2)
+library(reshape2)
+library(ROCR)
+library(e1071)
+library(GGally)
+library(klaR)
+library(randomForest)
+```
+
+
+```{r}
+model_4_21_95wRAW = NULL
+model_2_7_21_new = NULL
+model_2_7_21_new <- read_excel("~/Desktop/sage/model_2_7_21_newV2.xlsx")
+
+#model_2_7_21_new2 = apply(model_2_7_21_new[,2:104],2,as.numeric)
+#model_4_21_95wRAW <- cbind(model_2_7_21_new[,1],model_2_7_21_new2)
+
+#View(model_4_21_95wRAW)  
+model_4_21_95wRAW <- model_2_7_21_new
+
+library(tidyverse)
+model_4_21_95wRAW %>% select_if(negate(is.numeric))
+```
+
+
+```{r}
+summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) {
+  retVals <- numeric()
+  for ( metrTmp in inpMetrNms ) {
+    retVals[metrTmp] <- performance(prediction(inpPred,inpTruth),measure=metrTmp)@y.values[[1]][2]
+  }
+  retVals
+}
+```
+
+
+```{r}
+dim(model_4_21_95wRAW)
+multi.hist(model_4_21_95wRAW[,2:103]) 
+#pairs(model_4_21_95wRAW[,2:44])
+```
+
+
+PCA
+```{r}
+
+
+
+#here we are computing PCA
+
+prcompTmp <- prcomp(model_4_21_95wRAW[,2:103],center = TRUE,scale = TRUE)
+
+#Here we have a plot of the variance by principle componant
+plot(prcompTmp)
+
+#This is just a fancy way of doing the same thing
+fviz_eig(prcompTmp, addlabels=TRUE, ylim=c(0,60), geom = c("bar", "line"), barfill = "gold", barcolor="grey",linecolor = "red", ncp=10)+
+labs(title = "Principal Component Analysis Immune Cell Data",
+         x = "Principal Components", y = "% of variances")
+
+
+all_var <- get_pca_var(prcompTmp)
+all_var
+
+#Correlation between variables and PCA
+#It shows the importance of a principal component for a given observation (vector of original variables). You can go through the following link for details.
+corrplot(all_var$cos2, is.corr=FALSE)
+
+#To highlight the most contributing variables for each components
+corrplot(all_var$contrib, is.corr=FALSE)    
+# 
+pdf("cor_plots.pdf")
+corrplot(all_var$contrib, is.corr=FALSE) 
+dev.off()
+
+fviz_pca_var(prcompTmp, col.var = "black")
+
+
+fviz_pca_var(prcompTmp, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE # Avoid text overlapping
+             )
+
+```
+
+
+QC for rows:
+```{r}
+scrambled_outcome = sample(Train$cat)
+scrambled_outcome_test = sample(Test$cat)
+length(scrambled_outcome)
+length(Train$cat)
+```
+
+
+```{r}
+
+Y = factor(as.numeric(as.factor(scrambled_outcome)))
+Y_test = factor(as.numeric(as.factor(scrambled_outcome_test)))
+rfTmp <- randomForest(Y~.,data=Train[,2:103],mTry = 10)
+rfTestPred <- predict(rfTmp,newdata=Test)
+mseTest_scrambled <- mean((as.numeric(factor(Y_test))-as.numeric(rfTestPred))) #Calculating the mean squared error
+tmpVals_scrambled <- summPreds(as.numeric(factor(Y_test)),as.numeric(rfTestPred))
+
+
+```
+
+```{r}
+Y_s = factor(as.numeric(as.factor(scrambled_outcome)))
+Y_test = factor(as.numeric(as.factor(scrambled_outcome_test)))
+Y = factor(as.numeric(as.factor(Train$cat)))
+
+dfTmp <- NULL
+for ( iResample in 1:2 ) {
+  for ( iSim in 1:100 ) {
+ 
+  
+  scrambled_outcome_eachTime = sample(Train$cat)
+  scrambled_outcome_test_eachTime = sample(Test$cat)  
+  Y_s_et = factor(as.numeric(as.factor(scrambled_outcome_eachTime)))
+  Y_test_et = factor(as.numeric(as.factor(scrambled_outcome_test_eachTime)))  
+    
+    
+  rfTmp <- randomForest(Y~.,data=Train[,2:103],mTry = 10)
+  rfTestPred <- predict(rfTmp,newdata=Test)
+  mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
+  tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF",metric=names(tmpVals),value=tmpVals))  
+    
+  rfTmpS <- randomForest(Y_s~.,data=Train[,2:103],mTry = 10)
+  rfTestPredS <- predict(rfTmpS,newdata=Test)
+  mseTest_scrambled <- mean((as.numeric(factor(Y_test))-as.numeric(rfTestPredS))) #Calculating the mean squared error
+  tmpVals_scrambled <- summPreds(as.numeric(factor(Y_test)),as.numeric(rfTestPredS))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF Scrambled",metric=names(tmpVals_scrambled),value=tmpVals_scrambled))
+
+  rfTmpET <- randomForest(Y_s_et~.,data=Train[,2:103],mTry = 10)
+  rfTestPredET <- predict(rfTmpET,newdata=Test)
+  mseTest_scrambledET <- mean((as.numeric(factor(Y_test_et))-as.numeric(rfTestPredET))) #Calculating the mean squared error
+  tmpVals_scrambledET <- summPreds(as.numeric(factor(Y_test_et)),as.numeric(rfTestPredET))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF Scrambled Each Time",metric=names(tmpVals_scrambledET),value=tmpVals_scrambledET))
+
+  }
+}
+```
+
+```{r}
+p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
+
+p
+```
+
+
+Measuring how correlated the columns are with respect to N and Y.  Here I am looking at for a given column how correlated the outcomes are for each column then building a histogram showing this. 
+```{r}
+library(corrr)
+#model_4_21_95wRAW[,2:103]
+
+
+Corrs = NULL
+maxS = ncol(model_4_21_95wRAW) -1
+for(i in 2:maxS){
+  x = model_4_21_95wRAW[2:1023,i]
+  y = model_4_21_95wRAW[1024:2077,i]
+  x = sample(as.numeric(unlist(x)),1000)
+  y = sample(as.numeric(unlist(y)),1000)
+  Corrs[i] = cor(x,y)
+}  
+  
+hist(Corrs, main = "Histogram of Correlation for Y and N",xlab =  "Pearson Correlation Values") 
+```
+Here I am looking at the correlation between rows. In this case the Y vs the N
+```{r}
+library(corrplot)
+library(svglite)
+y_s = model_4_21_95wRAW[2:1023,]
+n_s = model_4_21_95wRAW[1024:2077,]
+
+yT = t(y_s)
+nT = t(n_s)
+
+dim(yT)
+dim(nT)
+nT = nT[2:103,]
+nT = as.numeric(nT)
+nT = matrix(nT,102,1054)
+nT = nT[,1:1022]
+yT = yT[2:103,]
+yT = as.numeric(yT)
+yT = matrix(yT,102,1022)
+
+No_cor = cor(nT)
+Yes_cor = cor(yT)
+
+total_cor = cor(nT,yT)
+
+
+
+Yes_D = density(Yes_cor)
+No_D = density(No_cor)
+Total_D = density(total_cor)
+
+
+NewBlue = rgb(0,0,1,0.8)
+NewGreen = rgb(0,1,0,0.6)
+NewRed = rgb(1,0,0,0.6)
+
+
+pdf("my_plot.pdf")
+heatmap(No_cor,symm = T,main = "Heatmap: Correlation of No")
+heatmap(Yes_cor,symm = T,main = "Heatmap: Correlation of Yes")
+heatmap(total_cor,symm = T,main = "Heatmap: Correlation of No vs Yes")
+plot(No_D)
+polygon(No_D,col = NewBlue)
+polygon(Yes_D,col = NewGreen )
+polygon(Total_D,col = NewRed)
+legend("topright", inset=.02, title="Comparing correlation",
+   c("No","Yes","No vs Yes"), fill= c(NewBlue,NewGreen,NewRed),horiz=FALSE, cex=0.8)
+dev.off()
+```
+
+
+
+
+
