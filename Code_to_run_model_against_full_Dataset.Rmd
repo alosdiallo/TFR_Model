@@ -1,0 +1,144 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Loading packages
+
+```{r message=FALSE, include=FALSE}
+library(neuralnet)
+library(readxl)
+library(grid)
+library(corrplot)
+library(caret)
+library(e1071)
+library(ROCR)
+library(ggplot2)
+library(GGally)
+library(PerformanceAnalytics)
+library(factoextra)
+library(corrplot)
+library(Rtsne)
+library(FactoMineR)
+library(ggplot2)
+library(factoextra)
+library(survminer)
+library(ggcorrplot)
+library(readr)
+library(circlize)
+library(readxl)
+library(stringr)
+library(reshape)
+library(psych)
+library(ComplexHeatmap)
+library(ggpubr)
+library(readr)
+library(gridExtra)
+library(cowplot)
+library(MASS)
+library(fitdistrplus)
+#BiocManager::install("preprocessCore")
+library(preprocessCore)
+library(MASS)
+library(class)
+library(ggplot2)
+library(reshape2)
+library(ROCR)
+library(e1071)
+library(GGally)
+library(klaR)
+library(randomForest)
+```
+
+Loading the data:
+
+
+```{r}
+model_4_21_95wRAW = NULL
+model_2_7_21_new = NULL
+model_2_7_21_new <- read_excel("~/Desktop/sage/model_2_7_21_newV4.xlsx")
+
+model_4_21_95wRAW <- model_2_7_21_new
+#library(tidyverse)
+#model_4_21_95wRAW %>% select_if(negate(is.numeric))
+
+dim(model_2_7_21_new)
+```
+
+```{r}
+summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) {
+  retVals <- numeric()
+  for ( metrTmp in inpMetrNms ) {
+    retVals[metrTmp] <- performance(prediction(inpPred,inpTruth),measure=metrTmp)@y.values[[1]][2]
+  }
+  retVals
+}
+```
+
+
+```{r}
+    Train = NULL
+    Test = NULL
+    bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)))
+    Train <- model_4_21_95wRAW[bTrain,2:87]
+    Test <- model_4_21_95wRAW[-bTrain,2:87]
+    Test = as.data.frame(Test)
+              Train$cat = as.numeric(as.factor(Train$cat))
+          Test$cat = as.numeric(as.factor(Test$cat))
+          
+          
+```
+
+```{r}
+Y = factor(as.numeric(as.factor(Train$cat)))
+tuneRF(Train[1:85],Y,ntreeTry = 300,plot=TRUE)
+```
+
+
+
+```{r}
+Y = factor(as.numeric(as.factor(Train$cat)))
+rfTmp <- randomForest(Y~.,data=Train[,1:85],mTry = 18,ntree = 1000)
+rfTestPred <- predict(rfTmp,newdata=Test[,1:85])
+
+
+mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
+tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
+
+VI_F=importance(rfTmp)
+VI_F
+#pdf("Importance_plot.pdf")
+varImpPlot(rfTmp,type=2)
+#dev.off()
+
+partialPlot(rfTmp,x.var="LNTreg1",pred.data = as.data.frame(Train),which.class = 2)
+```
+
+
+
+```{r}
+library(readxl)
+TfhTfr_Exon_AllGenes_combined <- read_excel("~/Desktop/sage/TfhTfr_Exon_AllGenes_combined.xlsx")
+
+#Getting the class
+#rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86])
+rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86],type = "class")
+#getting the probabilities
+rfTestPred_prob <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86],type = "prob")
+
+```
+
+2 is a Yes, 1 is a No
+```{r}
+TfhTfr_Exon_AllGenes_combined = cbind(TfhTfr_Exon_AllGenes_combined,rfTestPred)
+genes_vales = TfhTfr_Exon_AllGenes_combined[,c(1,87)]
+genes_vales = cbind(genes_vales,rfTestPred_prob)
+
+hist(as.numeric(genes_vales[,2]))
+```
+
+
+
+
+
+
