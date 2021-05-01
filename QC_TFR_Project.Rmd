@@ -1,9 +1,11 @@
 ---
-title: "QC for tfr project"
-output: html_notebook
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
 ---
 
-Loading libraries
+Here is my toolbox for the project.
 ```{r message=FALSE, include=FALSE}
 library(neuralnet)
 library(readxl)
@@ -49,11 +51,10 @@ library(klaR)
 library(randomForest)
 ```
 
-
 ```{r}
 model_4_21_95wRAW = NULL
 model_2_7_21_new = NULL
-model_2_7_21_new <- read_excel("~/Desktop/sage/model_2_7_21_newV2.xlsx")
+model_2_7_21_new <- read_excel("F:/Research/Sage/2021 Model/model_2_7_21_newV2.xlsx")
 
 #model_2_7_21_new2 = apply(model_2_7_21_new[,2:104],2,as.numeric)
 #model_4_21_95wRAW <- cbind(model_2_7_21_new[,1],model_2_7_21_new2)
@@ -75,6 +76,9 @@ summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) 
   retVals
 }
 ```
+
+
+
 
 
 ```{r}
@@ -124,10 +128,98 @@ fviz_pca_var(prcompTmp, col.var = "cos2",
              repel = TRUE # Avoid text overlapping
              )
 
+
+
+
+```
+
+Test area for models
+```{r}
+    Train = NULL
+    Test = NULL
+    bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)))
+    Train <- model_4_21_95wRAW[bTrain,2:104]
+    Test <- model_4_21_95wRAW[-bTrain,2:104]
+    Test = as.data.frame(Test)
+              Train$cat = as.numeric(as.factor(Train$cat))
+          Test$cat = as.numeric(as.factor(Test$cat))
+   dfTmp <- NULL 
+   iResample = 1
+
+glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:103],family=binomial)
+  glmTestPred <- predict(glmTrain, newdata=Test[,2:103], type="response") > 0.5
+  tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
+  
+  
+        # KNN:
+#     for ( kTmp in c(10,20,150,300) ) {
+# 
+#       knnTestPred <- knn(Train[,2:116],Test[,2:116],Train$cat,k=kTmp)
+#       tmpVals <- summPreds(as.numeric(knnTestPred),as.numeric(Test$cat))
+#       dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type=paste0("K",kTmp),metric=names(tmpVals),value=tmpVals))
+# }
+
 ```
 
 
-QC for rows:
+
+Here is the validation code set.  Right now I am only using a few models but ideally I would include more.
+
+```{r testerr,warning=FALSE}
+# warning=FALSE in knitr clause prevents well understood warnings from cluttering the output
+dfTmp <- NULL
+for ( iResample in 1:2 ) {
+  for ( iSim in 1:100 ) {
+    bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)))
+    Train <- model_4_21_95wRAW[bTrain,2:104]
+    Test <- model_4_21_95wRAW[-bTrain,2:104]
+    Test = as.data.frame(Test)
+    Train = as.data.frame(Train)
+    if ( iResample == 2 ) {
+          bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)),replace=TRUE)
+    Train <- model_4_21_95wRAW[bTrain,2:104]
+    Test <- model_4_21_95wRAW[-bTrain,2:104]
+    Test = as.data.frame(Test)
+    Train = as.data.frame(Train)
+    }
+    # logistic regression:
+  glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:103],family=binomial)
+  glmTestPred <- predict(glmTrain, newdata=Test[,2:103], type="response") > 0.5
+  tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
+#RF
+Y = factor(as.numeric(as.factor(Train$cat)))
+rfTmp <- randomForest(Y~.,data=Train[,2:103],mTry = 10)
+rfTestPred <- predict(rfTmp,newdata=Test)
+mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
+tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF",metric=names(tmpVals),value=tmpVals))
+# LDA:
+ldaTrain <- lda(Train$cat~.,data=Train[,2:103])
+ldaTestPred <- predict(ldaTrain, newdata=Test[,2:103])
+tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Test$cat))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LDA",metric=names(tmpVals),value=tmpVals))
+# NB:
+Y = factor(as.numeric(as.factor(Train$cat)))
+nbTrain <- naiveBayes(Y~.,data=Train[,2:103])
+nbTestPred = predict(nbTrain, newdata=Test[,2:103])
+tmpVals = summPreds(as.numeric(nbTestPred),as.numeric(as.factor(Test$cat)))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
+
+  }
+}
+```
+
+
+```{r}
+p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
+
+p
+```
+Quality Control
+Here what I am doing is running Rnadom Forst using random outcomes. This will check to see if Random Forst can make predictions if the gene classifications are not real.
+
 ```{r}
 scrambled_outcome = sample(Train$cat)
 scrambled_outcome_test = sample(Test$cat)
@@ -147,6 +239,8 @@ tmpVals_scrambled <- summPreds(as.numeric(factor(Y_test)),as.numeric(rfTestPred)
 
 
 ```
+
+Running the same thing many times, in this case I am scrambling the outcome variables.
 
 ```{r}
 Y_s = factor(as.numeric(as.factor(scrambled_outcome)))
@@ -186,6 +280,7 @@ for ( iResample in 1:2 ) {
 }
 ```
 
+
 ```{r}
 p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
 
@@ -193,75 +288,93 @@ p
 ```
 
 
-Measuring how correlated the columns are with respect to N and Y.  Here I am looking at for a given column how correlated the outcomes are for each column then building a histogram showing this. 
-```{r}
-library(corrr)
-#model_4_21_95wRAW[,2:103]
 
+```{r include=FALSE}
+   holder = matrix(0,100,2)
+    cNames = paste("col_", letters[1:20], sep="")
+    cNames = c(cNames,"cat")
+    cNames = as.character(cNames)
+dfTmp <- NULL
+for ( iResample in 1:2 ) {
+  for ( iSim in 1:100 ) {
+    
+    #Normal
+    rfTmp_normal <- randomForest(Y~.,data=Train[,2:43],mTry = 10)
+    rfTestPred_normal <- predict(rfTmp_normal,newdata=Test[,2:43])
+    mseTest_normal <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred_normal))) #Calculating the mean squared error
+    tmpVals_normal <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred_normal))
+    dfTmp <- rbind(dfTmp,data.frame(resample=c("Bootstrap Round 1","Bootstrap Round 2")[iResample],type="RF normal",metric=names(tmpVals_normal),value=tmpVals_normal)) 
+    
+    #Random columns
+    colsToUse = sample(2:43,20)
+    rfTmp_rand <- randomForest(Y~.,data=Train[,colsToUse],mTry = 10)
+    rfTestPred_rand <- predict(rfTmp_rand,newdata=Test[,colsToUse])
+    mseTest_rand <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred_rand))) #Calculating the mean squared error
+    tmpVals_rand <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred_rand))
+    dfTmp <- rbind(dfTmp,data.frame(resample=c("Bootstrap Round 1","Bootstrap Round 2")[iResample],type="RF Random Columns",metric=names(tmpVals_rand),value=tmpVals_rand)) 
+    
+    #random in that the training and test sets use different columns
+    rfTestPred = NULL
+    mtry = sample(1:20,1)
+    train = sample(Train[,2:43],20)
+    train = cbind(train,Train$cat)
+    colnames(train) = cNames
+    test = sample(Test[,2:43],20)
+    test = cbind(test,Test$cat)
+    colnames(test) = cNames
+    train$cat = as.factor(train$cat)
+    rfTmp <- randomForest(train$cat ~.,data=train[,1:20],mTry = mtry,ntree = 500)
+    rfTestPred <- predict(rfTmp,newdata = test)
+   mseTest <- mean((as.numeric(factor(test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
+    v = as.numeric(test$cat)
+    w = as.numeric(rfTestPred)
+    holder[iSim,iResample] = mseTest
+    tmpVals <- summPreds(as.numeric(rfTestPred),as.numeric(factor(test$cat)))
+    dfTmp <- rbind(dfTmp,data.frame(resample=c("Bootstrap Round 1","Bootstrap Round 2")[iResample],type="RF random",metric=names(tmpVals),value=tmpVals)) 
 
-Corrs = NULL
-maxS = ncol(model_4_21_95wRAW) -1
-for(i in 2:maxS){
-  x = model_4_21_95wRAW[2:1023,i]
-  y = model_4_21_95wRAW[1024:2077,i]
-  x = sample(as.numeric(unlist(x)),1000)
-  y = sample(as.numeric(unlist(y)),1000)
-  Corrs[i] = cor(x,y)
-}  
-  
-hist(Corrs, main = "Histogram of Correlation for Y and N",xlab =  "Pearson Correlation Values") 
-```
-Here I am looking at the correlation between rows. In this case the Y vs the N
-```{r}
-library(corrplot)
-library(svglite)
-y_s = model_4_21_95wRAW[2:1023,]
-n_s = model_4_21_95wRAW[1024:2077,]
-
-yT = t(y_s)
-nT = t(n_s)
-
-dim(yT)
-dim(nT)
-nT = nT[2:103,]
-nT = as.numeric(nT)
-nT = matrix(nT,102,1054)
-nT = nT[,1:1022]
-yT = yT[2:103,]
-yT = as.numeric(yT)
-yT = matrix(yT,102,1022)
-
-No_cor = cor(nT)
-Yes_cor = cor(yT)
-
-total_cor = cor(nT,yT)
-
-
-
-Yes_D = density(Yes_cor)
-No_D = density(No_cor)
-Total_D = density(total_cor)
-
-
-NewBlue = rgb(0,0,1,0.8)
-NewGreen = rgb(0,1,0,0.6)
-NewRed = rgb(1,0,0,0.6)
-
-
-pdf("my_plot.pdf")
-heatmap(No_cor,symm = T,main = "Heatmap: Correlation of No")
-heatmap(Yes_cor,symm = T,main = "Heatmap: Correlation of Yes")
-heatmap(total_cor,symm = T,main = "Heatmap: Correlation of No vs Yes")
-plot(No_D)
-polygon(No_D,col = NewBlue)
-polygon(Yes_D,col = NewGreen )
-polygon(Total_D,col = NewRed)
-legend("topright", inset=.02, title="Comparing correlation",
-   c("No","Yes","No vs Yes"), fill= c(NewBlue,NewGreen,NewRed),horiz=FALSE, cex=0.8)
-dev.off()
+  }
+}
 ```
 
 
+```{r}
+p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
 
+p
+```
 
+This is junk space for testing
+```{r}
+    rfTestPred = NULL
+    cNames = paste("col_", letters[1:20], sep="")
+    cNames = c(cNames,"cat")
+    cNames = as.character(cNames)
+    train = sample(Train[,2:102],20)
+    train = cbind(train,Train$cat)
+    colnames(train) = cNames
+    test = sample(Test[,2:102],20)
+    test = cbind(test,Test$cat)
+    colnames(test) = cNames
+    rfTmp <- randomForest(train$cat~.,data=train[,1:20],mTry = 10)
+    rfTestPred <- predict(rfTmp,newdata = test)
+    mseTest <- mean((as.numeric(factor(test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
+    v = as.numeric(test$cat)
+    w = as.numeric(rfTestPred)
+    tmpVals <- summPreds(as.numeric(rfTestPred),as.numeric(factor(test$cat)))
+    dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[1],type="RF",metric=names(tmpVals),value=tmpVals))  
+
+    
+    
+    
+ # summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) {
+    
+  inpMetrNms=c("err","acc","sens","spec")  
+  retVals <- numeric()
+  for ( metrTmp in inpMetrNms ) {
+    retVals[metrTmp] <- performance(prediction(rfTestPred,test$cat),measure=metrTmp)@y.values[[1]][2]
+  }
+  retVals
+#}  
+    
+```
 
