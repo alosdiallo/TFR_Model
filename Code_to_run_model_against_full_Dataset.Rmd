@@ -48,6 +48,7 @@ library(e1071)
 library(GGally)
 library(klaR)
 library(randomForest)
+library( "dplyr" )
 ```
 
 Loading the data:
@@ -96,7 +97,7 @@ tuneRF(Train[1:85],Y,ntreeTry = 300,plot=TRUE)
 
 
 
-```{r}
+```{r echo=TRUE}
 Y = factor(as.numeric(as.factor(Train$cat)))
 rfTmp <- randomForest(Y~.,data=Train[,1:85],mTry = 18,ntree = 1000)
 rfTestPred <- predict(rfTmp,newdata=Test[,1:85])
@@ -111,7 +112,23 @@ VI_F
 varImpPlot(rfTmp,type=2)
 #dev.off()
 
+# LNTreg1                    43.447022
+# LNTreg2                    27.107419
+# LNTreg3                    32.783442
+# LNTfr1                     53.615951
+# LNTfr2                     52.316917
+# LNTfr3                     67.765825
+# FoxF_CreN_ICOS_4           29.519462
+pdf("Importance_plot.pdf")
+partialPlot(rfTmp,x.var="LNTfr3",pred.data = as.data.frame(Train),which.class = 2)
+partialPlot(rfTmp,x.var="LNTfr1",pred.data = as.data.frame(Train),which.class = 2)
+partialPlot(rfTmp,x.var="LNTfr2",pred.data = as.data.frame(Train),which.class = 2)
 partialPlot(rfTmp,x.var="LNTreg1",pred.data = as.data.frame(Train),which.class = 2)
+partialPlot(rfTmp,x.var="LNTreg3",pred.data = as.data.frame(Train),which.class = 2)
+partialPlot(rfTmp,x.var="LNTreg2",pred.data = as.data.frame(Train),which.class = 2)
+partialPlot(rfTmp,x.var="FoxF_CreN_ICOS_4",pred.data = as.data.frame(Train),which.class = 2)
+dev.off()
+
 ```
 
 
@@ -137,8 +154,95 @@ genes_vales = cbind(genes_vales,rfTestPred_prob)
 hist(as.numeric(genes_vales[,2]))
 ```
 
+```{r}
+#genes_vales = cbind(genes_vales,rfTestPred_prob)
+Yes_columns = NULL
+Yes_columns = dplyr::filter( genes_vales, rfTestPred == 2 )
+Yes_columns = data.frame(Yes_columns)
+Yes_columns = Yes_columns[order(Yes_columns$X2,decreasing = TRUE),]
+Yes_columns_sub = Yes_columns[1:1000,]
+#View(Yes_columns_sub)
 
 
+TfhTfr_Exon_AllGenes_combined_Yes = NULL
+TfhTfr_Exon_AllGenes_combined_Yes = cbind(TfhTfr_Exon_AllGenes_combined,rfTestPred_prob)
+TfhTfr_Exon_AllGenes_combined_Yes = dplyr::filter( TfhTfr_Exon_AllGenes_combined_Yes, rfTestPred == 2 )
+TfhTfr_Exon_AllGenes_combined_Yes = data.frame(TfhTfr_Exon_AllGenes_combined_Yes)
+TfhTfr_Exon_AllGenes_combined_Yes = TfhTfr_Exon_AllGenes_combined_Yes[order(TfhTfr_Exon_AllGenes_combined_Yes$X2,decreasing = TRUE),]
+TfhTfr_Exon_AllGenes_combined_Yes_top_1000 = TfhTfr_Exon_AllGenes_combined_Yes[1:1000,]
+
+
+
+
+```
+
+
+
+```{r}
+
+library(gplots)
+#rownames(TfhTfr_Exon_AllGenes_combined_Yes) = TfhTfr_Exon_AllGenes_combined_Yes[,2]
+Ymatrix = unlist(TfhTfr_Exon_AllGenes_combined_Yes[1:5018,2:86])
+Ymatrix = as.numeric(Ymatrix)
+Ymatrix = matrix(v,nrow = 5018,ncol = 84)
+
+heatmap(Ymatrix,symm = F,main = "Heatmap test",labRow = rownames(TfhTfr_Exon_AllGenes_combined_Yes))
+```
+
+Making the top calls for the other class.
+
+```{r}
+TfhTfr_Exon_AllGenes_combined_No = NULL
+TfhTfr_Exon_AllGenes_combined_No = cbind(TfhTfr_Exon_AllGenes_combined,rfTestPred_prob)
+TfhTfr_Exon_AllGenes_combined_No = dplyr::filter( TfhTfr_Exon_AllGenes_combined_No, rfTestPred == 1 )
+TfhTfr_Exon_AllGenes_combined_No = data.frame(TfhTfr_Exon_AllGenes_combined_No)
+TfhTfr_Exon_AllGenes_combined_No = TfhTfr_Exon_AllGenes_combined_No[order(TfhTfr_Exon_AllGenes_combined_No$X1,decreasing = TRUE),]
+TfhTfr_Exon_AllGenes_combined_No_top_1000 = TfhTfr_Exon_AllGenes_combined_No[1:1000,]
+
+```
+
+Looking at the top 50 from each class
+```{r}
+
+TfhTfr_Exon_AllGenes_combined_Yes_top_50 = TfhTfr_Exon_AllGenes_combined_Yes[1:50,]
+TfhTfr_Exon_AllGenes_combined_No_top_50 = TfhTfr_Exon_AllGenes_combined_No[1:50,]
+
+
+groupCalls = rbind(TfhTfr_Exon_AllGenes_combined_Yes_top_50,TfhTfr_Exon_AllGenes_combined_No_top_50)
+
+YNHeatmap_matrix = NULL
+YNHeatmap_matrix = unlist(groupCalls[2:100,2:86])
+YNHeatmap_matrix = as.numeric(v)
+YNHeatmap_matrix = matrix(v,nrow = 98,ncol = 84)
+
+heatmap(YNHeatmap_matrix,symm = F,main = "Heatmap test",labRow = rownames(groupCalls))
+image(YNHeatmap_matrix)
+
+```
+
+
+```{r}
+
+write.csv(as.data.frame(Yes_columns_sub),file = "TFR_model_results_top_1000_genes.csv")
+write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_Yes),file = "TFR_model_results_Yes_genes.csv")
+write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_Yes_top_1000),file = "TFR_model_results_Yes_genes_top_1000.csv")
+write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_No_top_1000),file = "TFR_model_results_No_genes_1000.csv")
+write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_No_top_1000),file = "TFR_model_results_No_genes_1000.csv")
+write.csv(as.data.frame(groupCalls),file = "TFR_model_results_group.csv")
+```
+
+
+```{r}
+#BiocManager::install("M3C")
+#library(M3C)
+
+YmatrixNew = Ymatrix
+#colnames(YmatrixNew) = colnames(TfhTfr_Exon_AllGenes_combined_Yes[,2:85])
+umap(TfhTfr_Exon_AllGenes_combined_Yes[,2:86],colvec = as.factor(colnames(TfhTfr_Exon_AllGenes_combined_Yes[,2:86])),labels = as.factor(colnames(TfhTfr_Exon_AllGenes_combined_Yes[,2:86])))
+
+#tfr.umap = umap(Ymatrix)
+#tfr.umap
+```
 
 
 
