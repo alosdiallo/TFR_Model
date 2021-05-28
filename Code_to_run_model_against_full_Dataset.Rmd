@@ -57,7 +57,8 @@ Loading the data:
 ```{r}
 model_4_21_95wRAW = NULL
 model_2_7_21_new = NULL
-model_2_7_21_new <- read_excel("~/Desktop/sage/model_2_7_21_newV4.xlsx")
+library(readxl)
+model_2_7_21_new <- read_excel("F:/Research/Sage/2021 Model/model_2_7_21_newV4.xlsx")
 
 model_4_21_95wRAW <- model_2_7_21_new
 #library(tidyverse)
@@ -135,7 +136,7 @@ dev.off()
 
 ```{r}
 library(readxl)
-TfhTfr_Exon_AllGenes_combined <- read_excel("~/Desktop/sage/TfhTfr_Exon_AllGenes_combined.xlsx")
+TfhTfr_Exon_AllGenes_combined <- read_excel("F:/Research/Sage/TfhTfr_Exon_AllGenes_combined.xlsx")
 
 #Getting the class
 #rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86])
@@ -182,9 +183,9 @@ TfhTfr_Exon_AllGenes_combined_Yes_top_1000 = TfhTfr_Exon_AllGenes_combined_Yes[1
 
 library(gplots)
 #rownames(TfhTfr_Exon_AllGenes_combined_Yes) = TfhTfr_Exon_AllGenes_combined_Yes[,2]
-Ymatrix = unlist(TfhTfr_Exon_AllGenes_combined_Yes[1:5018,2:86])
+Ymatrix = unlist(TfhTfr_Exon_AllGenes_combined_Yes[1:5151 ,2:89])
 Ymatrix = as.numeric(Ymatrix)
-Ymatrix = matrix(v,nrow = 5018,ncol = 84)
+Ymatrix = matrix(Ymatrix,nrow = 5151,ncol = 88)
 
 heatmap(Ymatrix,symm = F,main = "Heatmap test",labRow = rownames(TfhTfr_Exon_AllGenes_combined_Yes))
 ```
@@ -212,8 +213,8 @@ groupCalls = rbind(TfhTfr_Exon_AllGenes_combined_Yes_top_50,TfhTfr_Exon_AllGenes
 
 YNHeatmap_matrix = NULL
 YNHeatmap_matrix = unlist(groupCalls[2:100,2:86])
-YNHeatmap_matrix = as.numeric(v)
-YNHeatmap_matrix = matrix(v,nrow = 98,ncol = 84)
+YNHeatmap_matrix = as.numeric(YNHeatmap_matrix)
+YNHeatmap_matrix = matrix(YNHeatmap_matrix,nrow = 98,ncol = 85)
 
 heatmap(YNHeatmap_matrix,symm = F,main = "Heatmap test",labRow = rownames(groupCalls))
 image(YNHeatmap_matrix)
