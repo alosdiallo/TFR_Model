@@ -206,7 +206,15 @@ nbTrain <- naiveBayes(Y~.,data=Train[,2:103])
 nbTestPred = predict(nbTrain, newdata=Test[,2:103])
 tmpVals = summPreds(as.numeric(nbTestPred),as.numeric(as.factor(Test$cat)))
 dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
-
+#knn
+ for ( kTmp in c(1,2,5,10,20) ) {
+      cols_to_use = sample(102,30,replace = FALSE)
+      try(knnTestPred <- knn(Train[,cols_to_use],Test[,cols_to_use],Train$cat,k=kTmp,use.all = F,prob = T), silent = TRUE)
+      #knnTestPred <- knn(Train[,cols_to_use],Test[,cols_to_use],Train$cat,k=kTmp,use.all = F,prob = T)
+      tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(knnTestPred))
+      dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","bootstrap")[iResample],type=paste0("k",kTmp),metric=names(tmpVals),value=tmpVals))
+      # 
+    }
   }
 }
 ```
