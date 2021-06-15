@@ -11,6 +11,7 @@ https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/try
 
 Visualization for the figures:
 Fancy Dot plot, and GSEA plots -> http://yulab-smu.top/clusterProfiler-book/chapter12.html#bar-plot
+https://cran.r-project.org/web/packages/ggridges/vignettes/introduction.html
 
 GSEA:
 https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/
