@@ -143,6 +143,7 @@ small = imp[65:85,]
 
 ggplot(data = small, aes(x = MeanDecreaseGini,y = reorder(varnames, MeanDecreaseGini))) +
 geom_bar(stat="identity",fill = 'darkred')+
+labs(y = "Condition") +
 theme(legend.position = "top")
 
 
