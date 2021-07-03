@@ -130,6 +130,22 @@ partialPlot(rfTmp,x.var="LNTreg2",pred.data = as.data.frame(Train),which.class =
 partialPlot(rfTmp,x.var="FoxF_CreN_ICOS_4",pred.data = as.data.frame(Train),which.class = 2)
 dev.off()
 
+#Here I include code to generate the importance plot
+library(dplyr)
+library(RColorBrewer)
+imp <- as.data.frame(VI_F)
+imp$varnames <- rownames(VI_F)
+imp = imp %>% arrange(MeanDecreaseGini)
+small = imp[65:85,]
+#imp = order(imp)
+#dotchart(small$MeanDecreaseGini,labels = small$varnames,color = brewer.pal(n = 8, name = "Dark2"))
+
+
+ggplot(data = small, aes(x = MeanDecreaseGini,y = reorder(varnames, MeanDecreaseGini))) +
+geom_bar(stat="identity",fill = 'darkred')+
+theme(legend.position = "top")
+
+
 ```
 
 
