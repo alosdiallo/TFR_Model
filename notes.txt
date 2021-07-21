@@ -1,2 +1,21 @@
+Information to help with this project:
+Links for help on exploring data
 https://www.littlemissdata.com/blog/inspectdf
 https://www.littlemissdata.com/blog/simple-eda
+
+Links for help on error handling:
+https://stackoverflow.com/questions/12193779/how-to-write-trycatch-in-r
+http://adv-r.had.co.nz/Exceptions-Debugging.html
+https://cran.r-project.org/web/packages/tryCatchLog/vignettes/tryCatchLog-intro.html
+https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/try
+
+Visualization for the figures:
+Fancy Dot plot, and GSEA plots -> http://yulab-smu.top/clusterProfiler-book/chapter12.html#bar-plot
+https://cran.r-project.org/web/packages/ggridges/vignettes/introduction.html
+
+GSEA:
+https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/
+https://www.bioconductor.org/packages/release/bioc/manuals/enrichplot/man/enrichplot.pdf
+
+
+

@@ -1,0 +1,64 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+
+library(readr)
+TFR_200 <- read_delim("TFR 200.tsv", "\t",escape_double = FALSE, trim_ws = TRUE)
+
+TFR_200_sp <- read_delim("GSEA/my_analysis.Gsea.custom_geneset_DB_SP/TFR 300.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
+
+TFR_200_bl <- read_delim("GSEA/my_analysis.Gsea.custom_geneset_DB_BL/TFR 300.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
+
+TFR_Random <- read_delim("GSEA/my_analysis.Gsea.custom_geneset_DB_LN_Random/RANDOM1.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
+
+TFR_v_TFH <- read_delim("GSEA/my_analysis.Gsea.custom_geneset_DB_LN_Random/TFR 200.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
+
+library(readxl)
+GSEA_averages <- read_excel("GSEA_averages.xlsx")
+
+attach(TFR_200)
+
+
+plot(TFR_200$`RANK IN GENE LIST`,TFR_200$`RUNNING ES`)
+lines(TFR_200$`RANK IN GENE LIST`,TFR_200$`RUNNING ES`,col='red')
+
+TFR_200 = as.data.frame(TFR_200)
+TFR_200_sp = as.data.frame(TFR_200_sp)
+TFR_200_bl = as.data.frame(TFR_200_bl)
+TFR_Random = as.data.frame(TFR_Random)
+TFR_v_TFH = as.data.frame(TFR_v_TFH)
+
+
+ggplot(data=TFR_200, aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1)) +
+  #geom_line(color="#547980",size=1) +
+  #geom_line(color="#547980",size=1, linetype="dashed") +
+  geom_point(data=TFR_200, color="#547980",aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1))+
+  #geom_line(data = TFR_200_sp, color="#45ADA8",size=1, linetype="twodash", aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1)) +
+  geom_point(data = TFR_200_sp, color="#45ADA8",aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1))+
+  #geom_line(data = TFR_200_bl, color="#9DE0AD", linetype="longdash", size=1,aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1)) +
+  geom_point(data = TFR_200_bl, color="#9DE0AD",aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1))+
+  #geom_line(data = TFR_v_TFH, color="#E5FCC2", linetype="solid",size=1,aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1)) +
+  #geom_point(data = TFR_v_TFH, color="#E5FCC2",aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1))+
+  #geom_line(data = TFR_Random, color="black", linetype="solid",size=1,aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1)) +
+  geom_point(data = TFR_Random, color="black",aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1))+
+  geom_hline(yintercept=0, linetype="dashed",color = "black", size=1) + theme_minimal() 
+
+
+
+
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

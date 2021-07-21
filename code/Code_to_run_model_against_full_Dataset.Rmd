@@ -57,8 +57,7 @@ Loading the data:
 ```{r}
 model_4_21_95wRAW = NULL
 model_2_7_21_new = NULL
-library(readxl)
-model_2_7_21_new <- read_excel("F:/Research/Sage/2021 Model/model_2_7_21_newV4.xlsx")
+model_2_7_21_new <- read_excel("~/Desktop/sage/model_2_7_21_newV4.xlsx")
 
 model_4_21_95wRAW <- model_2_7_21_new
 #library(tidyverse)
@@ -105,7 +104,7 @@ rfTestPred <- predict(rfTmp,newdata=Test[,1:85])
 
 
 mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
-tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
+#tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
 
 VI_F=importance(rfTmp)
 VI_F
@@ -130,13 +129,35 @@ partialPlot(rfTmp,x.var="LNTreg2",pred.data = as.data.frame(Train),which.class =
 partialPlot(rfTmp,x.var="FoxF_CreN_ICOS_4",pred.data = as.data.frame(Train),which.class = 2)
 dev.off()
 
+library(dplyr)
+library(RColorBrewer)
+imp <- as.data.frame(VI_F)
+imp$varnames <- rownames(VI_F)
+imp = imp %>% arrange(MeanDecreaseGini)
+small = imp[65:85,]
+#imp = order(imp)
+dotchart(small$MeanDecreaseGini,labels = small$varnames,color = brewer.pal(n = 8, name = "Dark2"))
+
+
+ggplot(data = small, aes(x = MeanDecreaseGini,y = reorder(varnames, MeanDecreaseGini))) +
+geom_bar(stat="identity",fill = 'darkred')+
+labs(y = "Condition") +
+theme(legend.position = "top")
+
+
+
+p = ggplot(small, aes(x = MeanDecreaseGini, y = reorder(varnames, MeanDecreaseGini))) +
+  geom_point(aes(color = MeanDecreaseGini, size = MeanDecreaseGini), alpha = 0.5) 
+  p
+ ggsave(file="test.svg", plot=p, width=10, height=8)
+
 ```
 
 
 
 ```{r}
 library(readxl)
-TfhTfr_Exon_AllGenes_combined <- read_excel("F:/Research/Sage/TfhTfr_Exon_AllGenes_combined.xlsx")
+TfhTfr_Exon_AllGenes_combined <- read_excel("~/Desktop/sage/TfhTfr_Exon_AllGenes_combined.xlsx")
 
 #Getting the class
 #rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86])
@@ -144,6 +165,12 @@ rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86],type = 
 #getting the probabilities
 rfTestPred_prob <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86],type = "prob")
 
+#Here I am trying to get some random names for the GSEA gene set.
+random_names = character(2000)
+random_names = sample(TfhTfr_Exon_AllGenes_combined$`Feature ID`,2000)
+fileConn<-file("random_names.txt")
+writeLines(random_names, fileConn)
+close(fileConn)
 ```
 
 2 is a Yes, 1 is a No
@@ -161,7 +188,7 @@ Yes_columns = NULL
 Yes_columns = dplyr::filter( genes_vales, rfTestPred == 2 )
 Yes_columns = data.frame(Yes_columns)
 Yes_columns = Yes_columns[order(Yes_columns$X2,decreasing = TRUE),]
-Yes_columns_sub = Yes_columns[1:1000,]
+Yes_columns_sub = Yes_columns[1:2000,]
 #View(Yes_columns_sub)
 
 
@@ -170,12 +197,54 @@ TfhTfr_Exon_AllGenes_combined_Yes = cbind(TfhTfr_Exon_AllGenes_combined,rfTestPr
 TfhTfr_Exon_AllGenes_combined_Yes = dplyr::filter( TfhTfr_Exon_AllGenes_combined_Yes, rfTestPred == 2 )
 TfhTfr_Exon_AllGenes_combined_Yes = data.frame(TfhTfr_Exon_AllGenes_combined_Yes)
 TfhTfr_Exon_AllGenes_combined_Yes = TfhTfr_Exon_AllGenes_combined_Yes[order(TfhTfr_Exon_AllGenes_combined_Yes$X2,decreasing = TRUE),]
-TfhTfr_Exon_AllGenes_combined_Yes_top_1000 = TfhTfr_Exon_AllGenes_combined_Yes[1:1000,]
-
-
-
+TfhTfr_Exon_AllGenes_combined_Yes_top_2000 = TfhTfr_Exon_AllGenes_combined_Yes[2:2000,]
 
 ```
+
+```{r}
+library(pheatmap)
+
+#small heatmap
+genesList = c('Cxcr5','Icos','Pdcd1','Bcl6','Nrn1','Tnfrsf18','Gzmb','Sh2d1a','Prdm1','Cd44','Irf4','Ezh2','Il1r2','Cxcr7','Foxp3','Bcl6','Il2rg','Il2rb','Bcl6','Ctla4','Gata3','Id2','Il10','Maf')
+
+
+colsToUse = 8:13
+colsToUse = c(1,colsToUse)
+McolsToUse = c(colsToUse,20:25) # Just Spleen
+McolsToUse = c(McolsToUse,32:37) # Blood included
+
+subsetYes = TfhTfr_Exon_AllGenes_combined_Yes[TfhTfr_Exon_AllGenes_combined_Yes$Feature.ID %in% genesList,colsToUse]
+
+Copy_subsetYes = as.matrix(subsetYes[,2:7])
+rownames(Copy_subsetYes) = subsetYes[,1]
+p = pheatmap(Copy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row')
+p
+ggsave(file="subListYesGenes.svg", plot=p, width=10, height=8)
+
+#with more cell types
+More_cell_types = TfhTfr_Exon_AllGenes_combined_Yes[TfhTfr_Exon_AllGenes_combined_Yes$Feature.ID %in% genesList,McolsToUse]
+#MCopy_subsetYes = as.matrix(More_cell_types[,2:13]) # with just spleen
+MCopy_subsetYes = as.matrix(More_cell_types[,2:19]) #Blood included
+rownames(MCopy_subsetYes) = More_cell_types[,1]
+p = pheatmap(MCopy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row')
+p
+ggsave(file="subListYesGenes_cell_types.svg", plot=p, width=10, height=8)
+
+#large heatmap
+holder = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,8:13]
+#View(holder)
+holder = as.matrix(holder)
+
+rownames(holder) = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,1]
+
+
+heatmap(holder,col= bluered(100))
+
+p = pheatmap(holder,cutree_rows = 2,cutree_cols = 2,scale = 'row')
+p
+ggsave(file="test.svg", plot=p, width=10, height=8)
+```
+
 
 
 
@@ -183,9 +252,9 @@ TfhTfr_Exon_AllGenes_combined_Yes_top_1000 = TfhTfr_Exon_AllGenes_combined_Yes[1
 
 library(gplots)
 #rownames(TfhTfr_Exon_AllGenes_combined_Yes) = TfhTfr_Exon_AllGenes_combined_Yes[,2]
-Ymatrix = unlist(TfhTfr_Exon_AllGenes_combined_Yes[1:5151 ,2:89])
+Ymatrix = unlist(TfhTfr_Exon_AllGenes_combined_Yes[1:5018,2:86])
 Ymatrix = as.numeric(Ymatrix)
-Ymatrix = matrix(Ymatrix,nrow = 5151,ncol = 88)
+Ymatrix = matrix(v,nrow = 5018,ncol = 84)
 
 heatmap(Ymatrix,symm = F,main = "Heatmap test",labRow = rownames(TfhTfr_Exon_AllGenes_combined_Yes))
 ```
@@ -213,8 +282,8 @@ groupCalls = rbind(TfhTfr_Exon_AllGenes_combined_Yes_top_50,TfhTfr_Exon_AllGenes
 
 YNHeatmap_matrix = NULL
 YNHeatmap_matrix = unlist(groupCalls[2:100,2:86])
-YNHeatmap_matrix = as.numeric(YNHeatmap_matrix)
-YNHeatmap_matrix = matrix(YNHeatmap_matrix,nrow = 98,ncol = 85)
+YNHeatmap_matrix = as.numeric(v)
+YNHeatmap_matrix = matrix(v,nrow = 98,ncol = 84)
 
 heatmap(YNHeatmap_matrix,symm = F,main = "Heatmap test",labRow = rownames(groupCalls))
 image(YNHeatmap_matrix)
@@ -226,7 +295,8 @@ image(YNHeatmap_matrix)
 
 write.csv(as.data.frame(Yes_columns_sub),file = "TFR_model_results_top_1000_genes.csv")
 write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_Yes),file = "TFR_model_results_Yes_genes.csv")
-write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_Yes_top_1000),file = "TFR_model_results_Yes_genes_top_1000.csv")
+TfhTfr_Exon_AllGenes_combined_Yes_top_2000
+write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_Yes_top_2000),file = "TFR_model_results_Yes_genes_top_2000.csv")
 write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_No_top_1000),file = "TFR_model_results_No_genes_1000.csv")
 write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_No_top_1000),file = "TFR_model_results_No_genes_1000.csv")
 write.csv(as.data.frame(groupCalls),file = "TFR_model_results_group.csv")
@@ -244,6 +314,4 @@ umap(TfhTfr_Exon_AllGenes_combined_Yes[,2:86],colvec = as.factor(colnames(TfhTfr
 #tfr.umap = umap(Ymatrix)
 #tfr.umap
 ```
-
-
 
