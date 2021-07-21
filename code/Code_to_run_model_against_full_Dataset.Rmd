@@ -119,15 +119,22 @@ varImpPlot(rfTmp,type=2)
 # LNTfr2                     52.316917
 # LNTfr3                     67.765825
 # FoxF_CreN_ICOS_4           29.519462
-pdf("Importance_plot.pdf")
-partialPlot(rfTmp,x.var="LNTfr3",pred.data = as.data.frame(Train),which.class = 2)
-partialPlot(rfTmp,x.var="LNTfr1",pred.data = as.data.frame(Train),which.class = 2)
-partialPlot(rfTmp,x.var="LNTfr2",pred.data = as.data.frame(Train),which.class = 2)
-partialPlot(rfTmp,x.var="LNTreg1",pred.data = as.data.frame(Train),which.class = 2)
-partialPlot(rfTmp,x.var="LNTreg3",pred.data = as.data.frame(Train),which.class = 2)
-partialPlot(rfTmp,x.var="LNTreg2",pred.data = as.data.frame(Train),which.class = 2)
-partialPlot(rfTmp,x.var="FoxF_CreN_ICOS_4",pred.data = as.data.frame(Train),which.class = 2)
-dev.off()
+# pdf("Importance_plot.pdf")
+# partialPlot(rfTmp,x.var="LNTfr3",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="LNTfr1",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="LNTfr2",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="LNTreg1",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="LNTreg3",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="LNTreg2",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="FoxF_CreN_ICOS_4",pred.data = as.data.frame(Train),which.class = 2)
+# dev.off()
+# partialPlot(rfTmp,x.var="BloodTfr1",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="BloodTfr2",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="BloodTfr3",pred.data = as.data.frame(Train),which.class = 2)
+# 
+# partialPlot(rfTmp,x.var="BloodTfr1",pred.data = as.data.frame(Train),which.class = 1)
+# partialPlot(rfTmp,x.var="BloodTfr2",pred.data = as.data.frame(Train),which.class = 1)
+# partialPlot(rfTmp,x.var="BloodTfr3",pred.data = as.data.frame(Train),which.class = 1)
 
 library(dplyr)
 library(RColorBrewer)
@@ -217,7 +224,7 @@ subsetYes = TfhTfr_Exon_AllGenes_combined_Yes[TfhTfr_Exon_AllGenes_combined_Yes$
 
 Copy_subsetYes = as.matrix(subsetYes[,2:7])
 rownames(Copy_subsetYes) = subsetYes[,1]
-p = pheatmap(Copy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row')
+p = pheatmap(Copy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
 p
 ggsave(file="subListYesGenes.svg", plot=p, width=10, height=8)
 
@@ -225,10 +232,17 @@ ggsave(file="subListYesGenes.svg", plot=p, width=10, height=8)
 More_cell_types = TfhTfr_Exon_AllGenes_combined_Yes[TfhTfr_Exon_AllGenes_combined_Yes$Feature.ID %in% genesList,McolsToUse]
 #MCopy_subsetYes = as.matrix(More_cell_types[,2:13]) # with just spleen
 MCopy_subsetYes = as.matrix(More_cell_types[,2:19]) #Blood included
+colsReorder = c(1:3,7:9,13:15,4:6,10:12,16:18)
+MCopy_subsetYes_reOrder = MCopy_subsetYes[,colsReorder] #re-ordered cols
 rownames(MCopy_subsetYes) = More_cell_types[,1]
-p = pheatmap(MCopy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row')
+rownames(MCopy_subsetYes_reOrder) = More_cell_types[,1]
+
+p = pheatmap(MCopy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
 p
-ggsave(file="subListYesGenes_cell_types.svg", plot=p, width=10, height=8)
+
+RC_p = pheatmap(MCopy_subsetYes_reOrder,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+RC_p
+ggsave(file="Proper_order_subListYesGenes_cell_types.svg", plot=RC_p, width=10, height=8)
 
 #large heatmap
 holder = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,8:13]
@@ -240,9 +254,57 @@ rownames(holder) = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,1]
 
 heatmap(holder,col= bluered(100))
 
-p = pheatmap(holder,cutree_rows = 2,cutree_cols = 2,scale = 'row')
+p = pheatmap(holder,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
 p
 ggsave(file="test.svg", plot=p, width=10, height=8)
+
+#large Top 50
+holder = NULL
+holder = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,McolsToUse]
+#View(holder)
+holder = as.matrix(holder[,2:19])
+
+rownames(holder) = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,1]
+
+
+heatmap(holder,col= bluered(100))
+
+p = pheatmap(holder,cutree_rows = 2,cutree_cols = 8,scale = 'row',clustering_distance_cols = "canberra")
+p
+ggsave(file="test.svg", plot=p, width=10, height=8)
+
+```
+
+Here I am working on the hclust linkage to see if there is one that better fits the columns
+```{r}
+MCopy_subsetYes = as.matrix(More_cell_types[,2:19]) #Blood included
+colsReorder = c(1:3,7:9,13:15,4:6,10:12,16:18)
+MCopy_subsetYes_reOrder = MCopy_subsetYes[,colsReorder] #re-ordered cols
+rownames(MCopy_subsetYes) = More_cell_types[,1]
+rownames(MCopy_subsetYes_reOrder) = More_cell_types[,1]
+
+p = pheatmap(MCopy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row')
+p
+
+RC_p = pheatmap(MCopy_subsetYes_reOrder,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+RC_p
+
+#method	
+ #"euclidean", "maximum", "manhattan", "canberra", "binary" or "minkowski". 
+
+# Ward Hierarchical Clustering
+d <- dist(MCopy_subsetYes_reOrder, method = "euclidean") # distance matrix
+fit_WD <- hclust(d, method="ward.D") 
+fit_WD2 <- hclust(d, method="ward.D2") 
+fit_S <- hclust(d, method="single") 
+fit_C <- hclust(d, method="complete") 
+fit_A <- hclust(d, method="average") 
+fit_MC <- hclust(d, method="mcquitty") 
+fit_M <- hclust(d, method="median")
+fit_CE <- hclust(d, method="centroid") 
+
+
+
 ```
 
 
@@ -314,4 +376,6 @@ umap(TfhTfr_Exon_AllGenes_combined_Yes[,2:86],colvec = as.factor(colnames(TfhTfr
 #tfr.umap = umap(Ymatrix)
 #tfr.umap
 ```
+
+
 
