@@ -8,7 +8,7 @@ output:
 Here is my toolbox for the project.
 ```{r message=FALSE, include=FALSE}
 library(neuralnet)
-library(readxl)
+
 library(grid)
 library(corrplot)
 library(caret)
@@ -54,7 +54,8 @@ library(randomForest)
 ```{r}
 model_4_21_95wRAW = NULL
 model_2_7_21_new = NULL
-model_2_7_21_new <- read_excel("F:/Research/Sage/2021 Model/model_2_7_21_newV2.xlsx")
+library(readxl)
+model_2_7_21_new <- read_excel("F:/Research/Sage/2021 Model/model_2_7_21_newV4.xlsx")
 
 #model_2_7_21_new2 = apply(model_2_7_21_new[,2:104],2,as.numeric)
 #model_4_21_95wRAW <- cbind(model_2_7_21_new[,1],model_2_7_21_new2)
@@ -83,7 +84,7 @@ summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) 
 
 ```{r}
 dim(model_4_21_95wRAW)
-multi.hist(model_4_21_95wRAW[,2:103]) 
+multi.hist(model_4_21_95wRAW[,2:86]) 
 #pairs(model_4_21_95wRAW[,2:44])
 ```
 
@@ -95,7 +96,7 @@ PCA
 
 #here we are computing PCA
 
-prcompTmp <- prcomp(model_4_21_95wRAW[,2:103],center = TRUE,scale = TRUE)
+prcompTmp <- prcomp(model_4_21_95wRAW[,2:86],center = TRUE,scale = TRUE)
 
 #Here we have a plot of the variance by principle componant
 plot(prcompTmp)
@@ -138,27 +139,49 @@ Test area for models
     Train = NULL
     Test = NULL
     bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)))
-    Train <- model_4_21_95wRAW[bTrain,2:104]
-    Test <- model_4_21_95wRAW[-bTrain,2:104]
+    Train <- model_4_21_95wRAW[bTrain,]
+    Test <- model_4_21_95wRAW[-bTrain,]
     Test = as.data.frame(Test)
-              Train$cat = as.numeric(as.factor(Train$cat))
-          Test$cat = as.numeric(as.factor(Test$cat))
+    Train$cat = as.numeric(as.factor(Train$cat))
+    Test$cat = as.numeric(as.factor(Test$cat))
    dfTmp <- NULL 
    iResample = 1
+svmTuneRes = NULL
+svmResult = svm(Train$cat~.,data=Train[,2:86],kernel="radial",cost=20,gamma = .1)
+svmTestPred = predict(svmResult, newdata=Test[,2:86])
+tmpVals = summPreds(predict(svmResult,newdata=Test[,2:86]),Test$cat)
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
+dfTmpSVM <- rbind(dfTmpNB,data.frame(resample=c("Validation","Bootstrap")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
 
-glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:103],family=binomial)
-  glmTestPred <- predict(glmTrain, newdata=Test[,2:103], type="response") > 0.5
-  tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
-  dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
-  
-  
-        # KNN:
-#     for ( kTmp in c(10,20,150,300) ) {
-# 
-#       knnTestPred <- knn(Train[,2:116],Test[,2:116],Train$cat,k=kTmp)
-#       tmpVals <- summPreds(as.numeric(knnTestPred),as.numeric(Test$cat))
-#       dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type=paste0("K",kTmp),metric=names(tmpVals),value=tmpVals))
-# }
+
+svmTuneRes = NULL
+
+for ( iResample in 1:2 ) {
+  for ( iSim in 1:10 ) {
+    bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)))
+    Train <- model_4_21_95wRAW[bTrain,]
+    Test <- model_4_21_95wRAW[-bTrain,]
+    Test = as.data.frame(Test)
+    Train$cat = as.numeric(as.factor(Train$cat))
+    Test$cat = as.numeric(as.factor(Test$cat))
+        if ( iResample == 2 ) {
+    bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)))
+    Train <- model_4_21_95wRAW[bTrain,]
+    Test <- model_4_21_95wRAW[-bTrain,]
+    Test = as.data.frame(Test)
+    Train$cat = as.numeric(as.factor(Train$cat))
+    Test$cat = as.numeric(as.factor(Test$cat))
+    }
+
+svmResult = svm(Train$cat~.,data=Train[,2:86],kernel="radial",cost=20,gamma = .1)
+svmTestPred = predict(svmResult, newdata=Test[,2:86])
+tmpVals = summPreds(predict(svmResult,newdata=Test[,2:86]),Test$cat)
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="SVM",metric=names(tmpVals),value=tmpVals))
+dfTmpSVM <- rbind(dfTmpSVM,data.frame(resample=c("Validation","Bootstrap")[iResample],type="SVM",metric=names(tmpVals),value=tmpVals))
+
+  }
+  }
+
 
 ```
 
@@ -168,62 +191,88 @@ Here is the validation code set.  Right now I am only using a few models but ide
 
 ```{r testerr,warning=FALSE}
 # warning=FALSE in knitr clause prevents well understood warnings from cluttering the output
-dfTmp <- NULL
+dfTmpLR <- NULL
+dfTmpRF <- NULL
+dfTmpNB <- NULL
+dfTmpLDA <- NULL
+dfTmpSVM <- NULL
+dfTmp = NULL
+svmTuneRes = NULL
+Train = NULL
+Test = NULL
+dfTmpKNN = NULL
+
 for ( iResample in 1:2 ) {
   for ( iSim in 1:100 ) {
     bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)))
-    Train <- model_4_21_95wRAW[bTrain,2:104]
-    Test <- model_4_21_95wRAW[-bTrain,2:104]
+    Train <- model_4_21_95wRAW[bTrain,]
+    Test <- model_4_21_95wRAW[-bTrain,]
     Test = as.data.frame(Test)
-    Train = as.data.frame(Train)
-    if ( iResample == 2 ) {
-          bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)),replace=TRUE)
-    Train <- model_4_21_95wRAW[bTrain,2:104]
-    Test <- model_4_21_95wRAW[-bTrain,2:104]
+    Train$cat = as.numeric(as.factor(Train$cat))
+    Test$cat = as.numeric(as.factor(Test$cat))
+  if ( iResample == 2 ) {
+    bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)))
+    Train <- model_4_21_95wRAW[bTrain,]
+    Test <- model_4_21_95wRAW[-bTrain,]
     Test = as.data.frame(Test)
-    Train = as.data.frame(Train)
+    Train$cat = as.numeric(as.factor(Train$cat))
+    Test$cat = as.numeric(as.factor(Test$cat))
     }
-    # logistic regression:
-  glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:103],family=binomial)
-  glmTestPred <- predict(glmTrain, newdata=Test[,2:103], type="response") > 0.5
-  tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
-  dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
+# logistic regression:
+glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:86],family=binomial)
+glmTestPred <- predict(glmTrain, newdata=Test[,2:86], type="response") > 0.5
+tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
+dfTmpLR <- rbind(dfTmpLR,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
+  
 #RF
 Y = factor(as.numeric(as.factor(Train$cat)))
-rfTmp <- randomForest(Y~.,data=Train[,2:103],mTry = 10)
+rfTmp <- randomForest(Y~.,data=Train[,2:86],mTry = 10)
 rfTestPred <- predict(rfTmp,newdata=Test)
 mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
 tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
 dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF",metric=names(tmpVals),value=tmpVals))
+dfTmpRF <- rbind(dfTmpRF,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF",metric=names(tmpVals),value=tmpVals))
 # LDA:
-ldaTrain <- lda(Train$cat~.,data=Train[,2:103])
-ldaTestPred <- predict(ldaTrain, newdata=Test[,2:103])
+ldaTrain <- lda(Train$cat~.,data=Train[,2:86])
+ldaTestPred <- predict(ldaTrain, newdata=Test[,2:86])
 tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Test$cat))
 dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LDA",metric=names(tmpVals),value=tmpVals))
+dfTmpLDA <- rbind(dfTmpLDA,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LDA",metric=names(tmpVals),value=tmpVals))
 # NB:
 Y = factor(as.numeric(as.factor(Train$cat)))
-nbTrain <- naiveBayes(Y~.,data=Train[,2:103])
-nbTestPred = predict(nbTrain, newdata=Test[,2:103])
+nbTrain <- naiveBayes(Y~.,data=Train[,2:86])
+nbTestPred = predict(nbTrain, newdata=Test[,2:86])
 tmpVals = summPreds(as.numeric(nbTestPred),as.numeric(as.factor(Test$cat)))
 dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
-#knn
- for ( kTmp in c(1,2,5,10,20) ) {
-      cols_to_use = sample(102,30,replace = FALSE)
-      try(knnTestPred <- knn(Train[,cols_to_use],Test[,cols_to_use],Train$cat,k=kTmp,use.all = F,prob = T), silent = TRUE)
-      #knnTestPred <- knn(Train[,cols_to_use],Test[,cols_to_use],Train$cat,k=kTmp,use.all = F,prob = T)
-      tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(knnTestPred))
-      dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","bootstrap")[iResample],type=paste0("k",kTmp),metric=names(tmpVals),value=tmpVals))
-      # 
-    }
+dfTmpNB <- rbind(dfTmpNB,data.frame(resample=c("Validation","Bootstrap")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
+#SVM
+svmResult = svm(Train$cat~.,data=Train[,2:86],kernel="radial",cost=20,gamma = .1)
+svmTestPred = predict(svmResult, newdata=Test[,2:86])
+tmpVals = summPreds(predict(svmResult,newdata=Test[,2:86]),Test$cat)
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="SVM",metric=names(tmpVals),value=tmpVals))
+dfTmpSVM <- rbind(dfTmpSVM,data.frame(resample=c("Validation","Bootstrap")[iResample],type="SVM",metric=names(tmpVals),value=tmpVals))
+# KNN:
+for ( kTmp in c(10,20,150,300) ) {
+  knnTestPred <- knn(Train[,2:86],Test[,2:86],Train$cat,k=kTmp)
+  tmpVals <- summPreds(as.numeric(knnTestPred),as.numeric(Test$cat))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="KNN",metric=names(tmpVals),value=tmpVals))
+  dfTmpKNN <- rbind(dfTmpKNN,data.frame(resample=c("Validation","Bootstrap")[iResample],type="KNN",metric=names(tmpVals),value=tmpVals))
+ 
+  }
   }
 }
 ```
 
 
+
 ```{r}
+p = NULL
 p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
 
 p
+
+ggsave(file="C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/performance_plots.svg", plot = p, width=600, height=450, units="mm", dpi=900)
 ```
 Quality Control
 Here what I am doing is running Rnadom Forst using random outcomes. This will check to see if Random Forst can make predictions if the gene classifications are not real.
@@ -240,7 +289,7 @@ length(Train$cat)
 
 Y = factor(as.numeric(as.factor(scrambled_outcome)))
 Y_test = factor(as.numeric(as.factor(scrambled_outcome_test)))
-rfTmp <- randomForest(Y~.,data=Train[,2:103],mTry = 10)
+rfTmp <- randomForest(Y~.,data=Train[,2:86],mTry = 10)
 rfTestPred <- predict(rfTmp,newdata=Test)
 mseTest_scrambled <- mean((as.numeric(factor(Y_test))-as.numeric(rfTestPred))) #Calculating the mean squared error
 tmpVals_scrambled <- summPreds(as.numeric(factor(Y_test)),as.numeric(rfTestPred))
@@ -248,7 +297,7 @@ tmpVals_scrambled <- summPreds(as.numeric(factor(Y_test)),as.numeric(rfTestPred)
 
 ```
 
-Running the same thing many times, in this case I am scrambling the outcome variables.
+Running the same thing many times, in this case I am scrambling the outcome variables.  #
 
 ```{r}
 Y_s = factor(as.numeric(as.factor(scrambled_outcome)))
@@ -266,19 +315,19 @@ for ( iResample in 1:2 ) {
   Y_test_et = factor(as.numeric(as.factor(scrambled_outcome_test_eachTime)))  
     
     
-  rfTmp <- randomForest(Y~.,data=Train[,2:103],mTry = 10)
+  rfTmp <- randomForest(Y~.,data=Train[,2:86],mTry = 10)
   rfTestPred <- predict(rfTmp,newdata=Test)
   mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
   tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF",metric=names(tmpVals),value=tmpVals))  
     
-  rfTmpS <- randomForest(Y_s~.,data=Train[,2:103],mTry = 10)
+  rfTmpS <- randomForest(Y_s~.,data=Train[,2:86],mTry = 10)
   rfTestPredS <- predict(rfTmpS,newdata=Test)
   mseTest_scrambled <- mean((as.numeric(factor(Y_test))-as.numeric(rfTestPredS))) #Calculating the mean squared error
   tmpVals_scrambled <- summPreds(as.numeric(factor(Y_test)),as.numeric(rfTestPredS))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF Scrambled",metric=names(tmpVals_scrambled),value=tmpVals_scrambled))
 
-  rfTmpET <- randomForest(Y_s_et~.,data=Train[,2:103],mTry = 10)
+  rfTmpET <- randomForest(Y_s_et~.,data=Train[,2:86],mTry = 10)
   rfTestPredET <- predict(rfTmpET,newdata=Test)
   mseTest_scrambledET <- mean((as.numeric(factor(Y_test_et))-as.numeric(rfTestPredET))) #Calculating the mean squared error
   tmpVals_scrambledET <- summPreds(as.numeric(factor(Y_test_et)),as.numeric(rfTestPredET))
@@ -351,22 +400,22 @@ p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="whi
 p
 ```
 
-This is junk space for testing
+This is junk space for testing do not run
 ```{r}
     rfTestPred = NULL
     cNames = paste("col_", letters[1:20], sep="")
     cNames = c(cNames,"cat")
     cNames = as.character(cNames)
-    train = sample(Train[,2:102],20)
+    train = sample(Train,20)
     train = cbind(train,Train$cat)
     colnames(train) = cNames
-    test = sample(Test[,2:102],20)
+    test = sample(Test,20)
     test = cbind(test,Test$cat)
     colnames(test) = cNames
     rfTmp <- randomForest(train$cat~.,data=train[,1:20],mTry = 10)
     rfTestPred <- predict(rfTmp,newdata = test)
     mseTest <- mean((as.numeric(factor(test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
-    v = as.numeric(test$cat)
+    v = as.numeric(test$cat) 
     w = as.numeric(rfTestPred)
     tmpVals <- summPreds(as.numeric(rfTestPred),as.numeric(factor(test$cat)))
     dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[1],type="RF",metric=names(tmpVals),value=tmpVals))  
