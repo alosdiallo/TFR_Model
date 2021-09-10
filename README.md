@@ -26,7 +26,7 @@ Authors
 Copyright © 2021 the President and Fellows of Harvard College.
 
 ![Blavatnikimmunology](https://github.com/alosdiallo/HMS_Immunology_RNASeq/blob/master/Blavatnikimmunology.jpg)  
-![BWH](https://github.com/alosdiallo/TFR_Model/blob/main/github_docs/bwh-logo.svg)  
+![BWH](https://github.com/alosdiallo/TFR_Model/blob/main/github_docs/bwh-logo.svg =100x50)  
 
 ### [MIT License](https://github.com/alosdiallo/HiC_Network_Viz_tool/blob/master/Licence.txt)
 
