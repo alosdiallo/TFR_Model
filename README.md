@@ -9,8 +9,8 @@ Authors
 --------------------
 	Alos Diallo - Department of Immunology, Harvard Medical School
 	Cecilia B Cavazzoni - Transplantation Research Center, Renal Division, Brigham and Women's Hospital
-  Jiaoyuan E Sun - Department of Immunology, Harvard Medical School
-  Peter T Sage2 - Transplantation Research Center, Renal Division, Brigham and Women's Hospital
+  	Jiaoyuan E Sun - Department of Immunology, Harvard Medical School
+  	Peter T Sage2 - Transplantation Research Center, Renal Division, Brigham and Women's Hospital
 	
   	
 Copyright © 2018 the President and Fellows of Harvard College.
