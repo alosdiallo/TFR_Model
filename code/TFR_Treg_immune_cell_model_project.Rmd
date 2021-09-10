@@ -5,7 +5,7 @@ output:
   html_notebook: default
 ---
 
-Here is my toolbox for the project.
+Here are the libraries used for this project
 ```{r message=FALSE, include=FALSE}
 library(neuralnet)
 
