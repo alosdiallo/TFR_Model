@@ -25,7 +25,7 @@ Authors
   	
 Copyright © 2021 the President and Fellows of Harvard College.
  
-<img align="left" src="https://github.com/alosdiallo/HMS_Immunology_RNASeq/blob/master/Blavatnikimmunology.jpg" width="200" height="10">
+<img align="left" src="https://github.com/alosdiallo/HMS_Immunology_RNASeq/blob/master/Blavatnikimmunology.jpg" width="200" height="100">
 <img align="left" src="https://github.com/alosdiallo/TFR_Model/blob/main/github_docs/bwh-logo.svg" width="200" height="50">
 <br>
 
