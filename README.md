@@ -11,6 +11,7 @@
    Being able to paint a clear picture of the gene expression landscape for individual types of immune cells can help give researchers tools needed to better understand these cells’ phenotype and functions. Work such as the Immunological Genome Project work towards this goal {Heng, 2008 #917}. Over the past decade, the development of more sophisticated tools to aid immunologists coupled with decreased sequence costs have allowed researchers to more effectively develop strategies to examine various cell types in different contexts, such as lymphoid tissues and the tumor microenvironment {Maslova, 2020 #913}{Pavlović, 2021 #914}.  In addition, the use of statistical models in molecular biology can also often provide insight that is difficult or costly to obtain through in vitro experiments {Eraslan, 2019 #915}. Here we developed a Tfr custom gene set that has been generated using machine learning methods to help researchers examine the effects of Tfr gene expression, when conducting experimentation. This TFR  gene list is designed to be easily used for pathway analysis in the GSEA tool, along with other pathway analysis tools such as Panther, and Enrichr. This should help researchers better understand the roles of TFR cells in immune responses. 
 
 [T follicular regulatory cells](https://pubmed.ncbi.nlm.nih.gov/27088919/)
+<br>
 [The receptor PD-1 controls follicular regulatory T cells in the lymph nodes and blood](https://pubmed.ncbi.nlm.nih.gov/23242415/)
 
 
