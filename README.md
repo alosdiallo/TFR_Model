@@ -16,7 +16,7 @@ Authors
 Copyright © 2018 the President and Fellows of Harvard College.
 
 ![Blavatnikimmunology](https://github.com/alosdiallo/HMS_Immunology_RNASeq/blob/master/Blavatnikimmunology.jpg)  
-![Immgen](https://github.com/alosdiallo/HMS_Immunology_RNASeq/blob/master/immgen.png)  
+![BWH](https://github.com/alosdiallo/TFR_Model/blob/main/github_docs/bwh-logo.svg)  
 ![EVERGRANDE](https://github.com/alosdiallo/HMS_Immunology_RNASeq/blob/master/evergrande_logo_footer2.png)
 
 ### [MIT License](https://github.com/alosdiallo/HiC_Network_Viz_tool/blob/master/Licence.txt)
