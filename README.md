@@ -15,8 +15,11 @@
 <br/>
 [The receptor PD-1 controls follicular regulatory T cells in the lymph nodes and blood](https://pubmed.ncbi.nlm.nih.gov/23242415/)
 
-# Requirements 
+## Requirements 
 To run the code you will need R version 4
+A full list of packages needed can be found in the markdown file.
+
+The gene set was tested on the GSEA app version 4.1.0
 
 
 Authors
