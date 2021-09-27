@@ -58,7 +58,7 @@ Loading the data:
 ```{r}
 model_4_21_95wRAW = NULL
 model_2_7_21_new = NULL
-model_2_7_21_new <- read_excel("~/Desktop/sage/model_2_7_21_newV4.xlsx")
+model_2_7_21_new <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/model_2_7_21_newV4.xlsx")
 
 model_4_21_95wRAW <- model_2_7_21_new
 #library(tidyverse)
@@ -165,7 +165,7 @@ p = ggplot(small, aes(x = MeanDecreaseGini, y = reorder(varnames, MeanDecreaseGi
 
 ```{r}
 library(readxl)
-TfhTfr_Exon_AllGenes_combined <- read_excel("~/Desktop/sage/TfhTfr_Exon_AllGenes_combined.xlsx")
+TfhTfr_Exon_AllGenes_combined <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/TfhTfr_Exon_AllGenes_combined.xlsx")
 
 #Getting the class
 #rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86])
@@ -201,7 +201,7 @@ if(length(to.install)>0) install.packages(to.install)
 
 library(devtools)
 if(!('reprtree' %in% installed.packages())){
-  install_github('araastat/reprtree')
+  devtools::install_github('skinner927/reprtree')
 }
 for(p in c(cran.packages, 'reprtree')) eval(substitute(library(pkg), list(pkg=p)))
 library(reprtree)
@@ -392,8 +392,8 @@ groupCalls = rbind(TfhTfr_Exon_AllGenes_combined_Yes_top_50,TfhTfr_Exon_AllGenes
 
 YNHeatmap_matrix = NULL
 YNHeatmap_matrix = unlist(groupCalls[2:100,2:86])
-YNHeatmap_matrix = as.numeric(v)
-YNHeatmap_matrix = matrix(v,nrow = 98,ncol = 84)
+YNHeatmap_matrix = as.numeric(YNHeatmap_matrix)
+YNHeatmap_matrix = matrix(YNHeatmap_matrix,nrow = 98,ncol = 84)
 
 heatmap(YNHeatmap_matrix,symm = F,main = "Heatmap test",labRow = rownames(groupCalls))
 image(YNHeatmap_matrix)
@@ -412,16 +412,4 @@ write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_No_top_1000),file = "TFR_m
 write.csv(as.data.frame(groupCalls),file = "TFR_model_results_group.csv")
 ```
 
-Not used
-```{r}
-#BiocManager::install("M3C")
-#library(M3C)
-
-YmatrixNew = Ymatrix
-#colnames(YmatrixNew) = colnames(TfhTfr_Exon_AllGenes_combined_Yes[,2:85])
-umap(TfhTfr_Exon_AllGenes_combined_Yes[,2:86],colvec = as.factor(colnames(TfhTfr_Exon_AllGenes_combined_Yes[,2:86])),labels = as.factor(colnames(TfhTfr_Exon_AllGenes_combined_Yes[,2:86])))
-
-#tfr.umap = umap(Ymatrix)
-#tfr.umap
-```
 

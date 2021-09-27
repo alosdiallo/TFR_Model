@@ -1,0 +1,269 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r message=FALSE, include=FALSE}
+library(dplyr)
+library(neuralnet)
+library(readxl)
+library(grid)
+library(corrplot)
+library(caret)
+library(e1071)
+library(ROCR)
+library(ggplot2)
+library(GGally)
+library(PerformanceAnalytics)
+library(factoextra)
+library(corrplot)
+library(Rtsne)
+library(FactoMineR)
+library(ggplot2)
+library(factoextra)
+library(survminer)
+library(ggcorrplot)
+library(readr)
+library(circlize)
+library(readxl)
+library(stringr)
+library(reshape)
+library(psych)
+library(ComplexHeatmap)
+library(ggpubr)
+library(readr)
+library(gridExtra)
+library(cowplot)
+library(MASS)
+library(fitdistrplus)
+#BiocManager::install("preprocessCore")
+library(preprocessCore)
+library(MASS)
+library(class)
+library(ggplot2)
+library(reshape2)
+library(ROCR)
+library(e1071)
+library(GGally)
+library(klaR)
+library(randomForest)
+
+```
+
+
+This is a function used to get the metrics from the perfomrance package. 
+```{r}
+summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) {
+  retVals <- numeric()
+  for ( metrTmp in inpMetrNms ) {
+    retVals[metrTmp] <- performance(prediction(inpPred,inpTruth),measure=metrTmp)@y.values[[1]][2]
+  }
+  retVals
+}
+```
+
+Loading the data:
+
+```{r include=FALSE}
+model = NULL
+library(here)
+here("/Data/Training_Test_Set.xlsx")
+getwd()
+library(readxl)
+model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
+
+library(tidyverse)
+model %>% select_if(negate(is.numeric))
+
+```
+
+Getting information on the dimensions of the data and using this in the code.
+```{r}
+dim(model)
+size = ncol(model) -1
+multi.hist(model[,2:size]) 
+```
+
+Building out the training and test set
+```{r}
+    Train = NULL
+    Test = NULL
+    bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
+    Train <- model[bTrain,]
+    Test <- model[-bTrain,]
+    Test = as.data.frame(Test)
+    Train$cat = as.numeric(as.factor(Train$cat))
+    Test$cat = as.numeric(as.factor(Test$cat))    
+    
+          
+```
+
+Running random forest to determine what the proper value for mtry is. This will tell me how many columns to use.
+```{r}
+Y = factor(as.numeric(as.factor(Train$cat)))
+tuneRF(Train[1:size],Y,ntreeTry = 300,plot=TRUE)
+```
+
+Here I am producing the variable importance plot from the paper.  Note that this is stochastic and so the importance will change a little each time, but the order should be consistant. 
+```{r echo=TRUE}
+Y = factor(as.numeric(as.factor(Train$cat)))
+rfTmp <- randomForest(Y~.,data=Train[,1:size],mTry = 18,ntree = 1000)
+rfTestPred <- predict(rfTmp,newdata=Test[,1:size])
+
+
+mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
+#tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
+
+p = ggplot(small, aes(x = MeanDecreaseGini, y = reorder(varnames, MeanDecreaseGini))) +
+  geom_point(aes(color = MeanDecreaseGini, size = MeanDecreaseGini), alpha = 0.5) 
+  p
+ ggsave(file="test.svg", plot=p, width=10, height=8)
+
+```
+
+Running the model on the full dataset
+```{r}
+library(readxl)
+library(randomForest)
+Full_Data_Set <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/TfhTfr_Exon_AllGenes_combined.xlsx")
+colnames(Full_Data_Set) = names(model[,1:78])
+#Getting the class
+rfTestPred <- predict(rfTmp,Full_Data_Set,type ='class')
+#getting the probabilities
+rfTestPred_prob <- predict(rfTmp,newdata=Full_Data_Set,type = "prob")
+
+```
+
+Here is the plot showing how many genes were assosiated with TFR (2) vs how many were not (2).
+```{r}
+column_number = ncol(Full_Data_Set)
+Full_Data_Set = cbind(Full_Data_Set,rfTestPred)
+genes_vales = Full_Data_Set[,c(1,column_number)]
+genes_vales = cbind(genes_vales,rfTestPred_prob)
+
+Class_labels = c('Not TFR','TFR') 
+h = hist(as.numeric(genes_vales[,2]),xlab = "TFR vs Not TFR", ylab = "Genes",
+     main = "Histogram of the two classes 1(Not TFR) and 2(TFR)", col="dodgerblue3",density=25,angle=60)
+
+
+```
+
+
+
+
+```{r}
+#genes_vales = cbind(genes_vales,rfTestPred_prob)
+Yes_columns = NULL
+Yes_columns = dplyr::filter( genes_vales, rfTestPred == 2 )
+Yes_columns = data.frame(Yes_columns)
+Yes_columns = Yes_columns[order(Yes_columns$X2,decreasing = TRUE),]
+Yes_columns_sub = Yes_columns[1:2000,]
+#View(Yes_columns_sub)
+
+
+TfhTfr_Exon_AllGenes_combined_Yes = NULL
+TfhTfr_Exon_AllGenes_combined_Yes = cbind(Full_Data_Set,rfTestPred_prob)
+
+
+```
+
+
+Here I am generating the heatmaps used in the paper.  There are several versions that we tried.
+```{r}
+library(pheatmap)
+
+#small heatmap
+genesList = c('Cxcr5','Icos','Pdcd1','Bcl6','Nrn1','Tnfrsf18','Gzmb','Sh2d1a','Prdm1','Cd44','Irf4','Ezh2','Il1r2','Cxcr7','Foxp3','Bcl6','Il2rg','Il2rb','Bcl6','Ctla4','Gata3','Id2','Il10','Maf')
+
+
+colsToUse = 8:13
+colsToUse = c(1,colsToUse)
+McolsToUse = c(colsToUse,20:25) # Just Spleen
+McolsToUse = c(McolsToUse,32:37) # Blood included
+Tcon_McolsToUse = c(McolsToUse,2:4,14:16,26:28) # Tcon included
+
+subsetYes = TfhTfr_Exon_AllGenes_combined_Yes[TfhTfr_Exon_AllGenes_combined_Yes$Feature.ID %in% genesList,colsToUse]
+
+Copy_subsetYes = as.matrix(subsetYes[,2:7])
+rownames(Copy_subsetYes) = subsetYes[,1]
+p = pheatmap(Copy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+p
+ggsave(file="subListYesGenes.svg", plot=p, width=10, height=8)
+
+#with more cell types
+More_cell_types = TfhTfr_Exon_AllGenes_combined_Yes[TfhTfr_Exon_AllGenes_combined_Yes$Feature.ID %in% genesList,McolsToUse]
+#MCopy_subsetYes = as.matrix(More_cell_types[,2:13]) # with just spleen
+MCopy_subsetYes = as.matrix(More_cell_types[,2:19]) #Blood included
+colsReorder = c(1:3,7:9,13:15,4:6,10:12,16:18)
+MCopy_subsetYes_reOrder = MCopy_subsetYes[,colsReorder] #re-ordered cols
+rownames(MCopy_subsetYes) = More_cell_types[,1]
+rownames(MCopy_subsetYes_reOrder) = More_cell_types[,1]
+
+p = pheatmap(MCopy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+p
+
+RC_p = pheatmap(MCopy_subsetYes_reOrder,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+RC_p
+ggsave(file="Proper_order_subListYesGenes_cell_types.svg", plot=RC_p, width=10, height=8)
+
+###############
+
+#adding Tcon
+T_con_More_cell_types = TfhTfr_Exon_AllGenes_combined_Yes[TfhTfr_Exon_AllGenes_combined_Yes$Feature.ID %in% genesList,Tcon_McolsToUse]
+#MCopy_subsetYes = as.matrix(More_cell_types[,2:13]) # with just spleen
+T_con_MCopy_subsetYes = as.matrix(T_con_More_cell_types[,2:28]) #Tcon included
+colsReorder = c(1:6,19:21,7:12,22:24,13:18,25:27)
+T_con_MCopy_subsetYes_reOrder = T_con_MCopy_subsetYes[,colsReorder] #re-ordered cols
+rownames(T_con_MCopy_subsetYes) = More_cell_types[,1]
+rownames(T_con_MCopy_subsetYes_reOrder) = More_cell_types[,1]
+
+
+T_con_RC_p = pheatmap(T_con_MCopy_subsetYes_reOrder,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+T_con_RC_p
+ggsave(file="Proper_order_subListYesGenes_cell_types_T_con_.svg", plot=T_con_RC_p, width=8, height=6)
+
+##########
+#large heatmap
+holder = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,8:13]
+#View(holder)
+holder = as.matrix(holder)
+
+rownames(holder) = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,1]
+
+
+heatmap(holder)
+
+p = pheatmap(holder,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+p
+ggsave(file="test.svg", plot=p, width=10, height=8)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
