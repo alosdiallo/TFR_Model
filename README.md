@@ -13,6 +13,8 @@
 [T follicular regulatory cells](https://pubmed.ncbi.nlm.nih.gov/27088919/)
 <br/>
 [The receptor PD-1 controls follicular regulatory T cells in the lymph nodes and blood](https://pubmed.ncbi.nlm.nih.gov/23242415/)
+<br/>
+[The multifaceted functions of follicular regulatory T cells](https://www.sciencedirect.com/science/article/abs/pii/S0952791520301084?via%3Dihub)
 
 ## Requirements 
 To run the code you will need R version 4
