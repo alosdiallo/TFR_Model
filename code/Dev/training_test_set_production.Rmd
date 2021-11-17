@@ -1,0 +1,114 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This code is used to generate the traing and test set. 
+
+```{r}
+library(gtools)
+library(dplyr)
+```
+
+
+```{r}
+library(readxl)
+Full_Data_Set <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/TfhTfr_Exon_AllGenes_combined.xlsx")
+
+colnames(Full_Data_Set)
+```
+
+
+
+```{r}
+
+fold_calc <- function(tfr_D,treg_D,tfh_D,Tcon_D){
+  meds = NULL
+  
+  #Pull the coordinates out for each subset
+  S_list = list(tfr_D,treg_D,tfh_D,Tcon_D) 
+    #Generate the median for each of the subsets
+    for(i in 1:4){
+      Cell_type = S_list[[i]]
+      Csubset = Full_Data_Set[,Cell_type]
+      med_sub_set = apply(Full_Data_Set[,Cell_type],1,median)
+      meds = cbind(meds,med_sub_set)
+    }
+  
+
+  #Fold Change
+  FC_tfr_treg = foldchange(num = meds[,1],denom = meds[,2])
+  FC_tfr_tfh = foldchange(num = meds[,1],denom = meds[,3])
+  FC_tfr_tcon = foldchange(num = meds[,1],denom = meds[,4])
+  
+  #Combining them
+  FC = cbind(FC_tfr_treg,FC_tfr_tfh,FC_tfr_tcon)
+  
+  return(FC)
+}
+
+
+```
+
+
+
+```{r}
+FC = NULL
+nn = NULL
+#LN
+LNtfr = 11:13
+LNtreg = 8:10
+LNtfh = 5:7
+LNtcon = 2:4
+LNFC = fold_calc(LNtfr,LNtreg,LNtfh,LNtcon)
+#SP
+SPtfr = 23:25
+SPtreg = 20:22
+SPtfh = 17:19
+SPtcon = 14:16
+SPFC = fold_calc(SPtfr,SPtreg,SPtfh,SPtcon)
+
+#BL
+BLtfr = 35:37
+BLtreg = 32:34
+BLtfh = 29:31
+BLtcon = 26:28
+BLFC = fold_calc(BLtfr,BLtreg,BLtfh,BLtcon)
+
+
+FC = cbind(Full_Data_Set$"Feature ID",LNFC,SPFC,BLFC)
+colnames(FC) = c("Feature ID","LN_tfr_treg","LN_tfr_tfh","LN_tfr_tcon","SP_tfr_treg","SP_tfr_tfh","SP_tfr_tcon","BL_tfr_treg","BL_tfr_tfh","BL_tfr_tcon")
+FC
+
+```
+
+
+
+
+```{r}
+new_data = merge(Full_Data_Set,FC)
+#View(new_data[1:50,])
+
+#Limit to genes with fold change above 1.5 tfr vs treg 
+df_res = new_data[order(new_data$LN_tfr_treg,decreasing=TRUE),]
+df_res$diffexpressed_FC <- "NO"
+df_res$diffexpressed_FC[df_res$LN_tfr_treg > 1.5 & df_res$SP_tfr_treg > 1.5 & df_res$BL_tfr_treg > 1] <- "UP"
+df_res$diffexpressed_FC[df_res$LN_tfr_treg == NaN] <- NA
+df_res$diffexpressed_FC[df_res$LN_tfr_treg == Inf] <- NA
+df_res <- df_res[complete.cases(df_res), ]
+
+
+df_res$diffexpressed_FC[df_res$diffexpressed_FC == "NO" ] <- NA
+df_res <- df_res[complete.cases(df_res), ]
+write.table(df_res,"C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/code/Yes_train_set.txt",sep="\t",row.names = FALSE)
+
+View(df_res)
+
+```
+
+
+
+
+
+
+
