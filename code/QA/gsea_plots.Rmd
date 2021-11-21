@@ -37,7 +37,7 @@ TFR_Random = as.data.frame(TFR_Random)
 TFR_v_TFH = as.data.frame(TFR_v_TFH)
 
 
-gseaP = ggplot(data=TFR_200, aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1)) +
+ggplot(data=TFR_200, aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1)) +
   #geom_line(color="#547980",size=1) +
   #geom_line(color="#547980",size=1, linetype="dashed") +
   geom_point(data=TFR_200, color="#547980",aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1))+
@@ -51,9 +51,7 @@ gseaP = ggplot(data=TFR_200, aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1)
   geom_point(data = TFR_Random, color="black",aes(x=`RANK IN GENE LIST`, y=`RUNNING ES`, group=1))+
   geom_hline(yintercept=0, linetype="dashed",color = "black", size=1) + theme_minimal() 
 
-gseaP
 
-ggsave(file="GSEA.svg", plot=gseaP, width=10, height=8)
 
 
 
