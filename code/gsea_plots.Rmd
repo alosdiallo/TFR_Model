@@ -8,20 +8,21 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 
 ```{r}
-
+library(ggplot2)
 library(readr)
-TFR_200 <- read_delim("TFR 200.tsv", "\t",escape_double = FALSE, trim_ws = TRUE)
 
-TFR_200_sp <- read_delim("GSEA/my_analysis.Gsea.custom_geneset_DB_SP/TFR 300.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
+TFR_200 <- read_delim("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/GSEA/my_analysis.Gsea.custom_geneset_DB_LN/TFR 200.tsv", "\t",escape_double = FALSE, trim_ws = TRUE)
 
-TFR_200_bl <- read_delim("GSEA/my_analysis.Gsea.custom_geneset_DB_BL/TFR 300.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
+TFR_200_sp <- read_delim("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/GSEA/my_analysis.Gsea.custom_geneset_DB_SP/TFR 300.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
 
-TFR_Random <- read_delim("GSEA/my_analysis.Gsea.custom_geneset_DB_LN_Random/RANDOM1.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
+TFR_200_bl <- read_delim("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/GSEA/my_analysis.Gsea.custom_geneset_DB_BL/TFR 300.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
 
-TFR_v_TFH <- read_delim("GSEA/my_analysis.Gsea.custom_geneset_DB_LN_Random/TFR 200.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
+TFR_Random <- read_delim("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/GSEA/my_analysis.Gsea.custom_geneset_DB_LN_Random/RANDOM1.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
+
+TFR_v_TFH <- read_delim("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/GSEA/my_analysis.Gsea.custom_geneset_DB_LN_Random/TFR 200.tsv","\t", escape_double = FALSE, trim_ws = TRUE)
 
 library(readxl)
-GSEA_averages <- read_excel("GSEA_averages.xlsx")
+GSEA_averages <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/GSEA/GSEA_averages.xlsx")
 
 attach(TFR_200)
 
