@@ -100,7 +100,7 @@ Test = NULL
 dfTmpKNN = NULL
 
 for ( iResample in 1:2 ) {
-  for ( iSim in 1:10 ) {
+  for ( iSim in 1:100 ) {
     bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
     Train <- model[bTrain,]
     Test <- model[-bTrain,]
