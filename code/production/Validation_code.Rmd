@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Test and Validation Error"
 output: html_notebook
 ---
 
@@ -100,61 +100,69 @@ Test = NULL
 dfTmpKNN = NULL
 
 for ( iResample in 1:2 ) {
-  for ( iSim in 1:100 ) {
+  for ( iSim in 1:10 ) {
     bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
     Train <- model[bTrain,]
     Test <- model[-bTrain,]
     Test = as.data.frame(Test)
     Train$cat = as.numeric(as.factor(Train$cat))
     Test$cat = as.numeric(as.factor(Test$cat))
-  if ( iResample == 2 ) {
-    bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
-    Train <- model[bTrain,]
-    Test <- model[-bTrain,]
-    Test = as.data.frame(Test)
-    Train$cat = as.numeric(as.factor(Train$cat))
-    Test$cat = as.numeric(as.factor(Test$cat))
+    if ( iResample == 2 ) {
+      bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
+      Train <- model[bTrain,]
+      Test <- model[-bTrain,]
+      Test = as.data.frame(Test)
+      Train$cat = as.numeric(as.factor(Train$cat))
+      Test$cat = as.numeric(as.factor(Test$cat))
     }
 # logistic regression:
 glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
 glmTestPred <- predict(glmTrain, newdata=Test[,2:size], type="response") > 0.5
+
 tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
-dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
-dfTmpLR <- rbind(dfTmpLR,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
+dfTmpLR <- rbind(dfTmpLR,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
   
 #RF
 Y = factor(as.numeric(as.factor(Train$cat)))
 rfTmp <- randomForest(Y~.,data=Train[,2:size],mTry = 10)
 rfTestPred <- predict(rfTmp,newdata=Test)
 mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
+
 tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
-dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF",metric=names(tmpVals),value=tmpVals))
-dfTmpRF <- rbind(dfTmpRF,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF",metric=names(tmpVals),value=tmpVals))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="RF",metric=names(tmpVals),value=tmpVals))
+dfTmpRF <- rbind(dfTmpRF,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="RF",metric=names(tmpVals),value=tmpVals))
 # LDA:
 ldaTrain <- lda(Train$cat~.,data=Train[,2:size])
 ldaTestPred <- predict(ldaTrain, newdata=Test[,2:size])
+
 tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Test$cat))
-dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LDA",metric=names(tmpVals),value=tmpVals))
-dfTmpLDA <- rbind(dfTmpLDA,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LDA",metric=names(tmpVals),value=tmpVals))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="LDA",metric=names(tmpVals),value=tmpVals))
+dfTmpLDA <- rbind(dfTmpLDA,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="LDA",metric=names(tmpVals),value=tmpVals))
 # NB:
 Y = factor(as.numeric(as.factor(Train$cat)))
 nbTrain <- naiveBayes(Y~.,data=Train[,2:size])
 nbTestPred = predict(nbTrain, newdata=Test[,2:size])
+
 tmpVals = summPreds(as.numeric(nbTestPred),as.numeric(as.factor(Test$cat)))
-dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
-dfTmpNB <- rbind(dfTmpNB,data.frame(resample=c("Validation","Bootstrap")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
+dfTmpNB <- rbind(dfTmpNB,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
 #SVM
 svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="radial",cost=20,gamma = .1)
 svmTestPred = predict(svmResult, newdata=Test[,2:size])
+
 tmpVals = summPreds(predict(svmResult,newdata=Test[,2:size]),Test$cat)
-dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="SVM",metric=names(tmpVals),value=tmpVals))
-dfTmpSVM <- rbind(dfTmpSVM,data.frame(resample=c("Validation","Bootstrap")[iResample],type="SVM",metric=names(tmpVals),value=tmpVals))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="SVM",metric=names(tmpVals),value=tmpVals))
+dfTmpSVM <- rbind(dfTmpSVM,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="SVM",metric=names(tmpVals),value=tmpVals))
 # KNN:
 for ( kTmp in c(10,20,150,300) ) {
   knnTestPred <- knn(Train[,2:size],Test[,2:size],Train$cat,k=kTmp)
+  knnTrainPred <- knn(Train[,2:size],Train[,2:size],Train$cat,k=kTmp)
+
   tmpVals <- summPreds(as.numeric(knnTestPred),as.numeric(Test$cat))
-  dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="KNN",metric=names(tmpVals),value=tmpVals))
-  dfTmpKNN <- rbind(dfTmpKNN,data.frame(resample=c("Validation","Bootstrap")[iResample],type="KNN",metric=names(tmpVals),value=tmpVals))
+  
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="KNN",metric=names(tmpVals),value=tmpVals))
+  dfTmpKNN <- rbind(dfTmpKNN,data.frame(resample=c("Test Error BS1","Test Error BS2")[iResample],type="KNN",metric=names(tmpVals),value=tmpVals))
  
   }
   }
