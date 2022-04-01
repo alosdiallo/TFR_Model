@@ -100,7 +100,7 @@ Test = NULL
 dfTmpKNN = NULL
 
 for ( iResample in 1:2 ) {
-  for ( iSim in 1:100 ) {
+  for ( iSim in 1:10 ) {
     bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
     Train <- model[bTrain,]
     Test <- model[-bTrain,]
@@ -161,7 +161,7 @@ for ( kTmp in c(10,20,150,300) ) {
 }
 ```
 
-Here we have the performance metrics for each model.
+Here we have the performance metrics for each model.  
 ```{r}
 p = NULL
 p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
