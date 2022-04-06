@@ -134,14 +134,14 @@ for ( iSim in 1:100 ) {
   tmpVals = summPreds(as.numeric(nbTestPred),as.numeric(as.factor(Test$cat)))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="NB",metric=names(tmpVals),value=tmpVals))
   
-  #SVM Training Error:
+  #SVM Test Error:
   svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear") 
   svmTestPred = predict(svmResult, newdata=Test[,2:size])
   tmpVals = summPreds(predict(svmResult,newdata=Test[,2:size]),Test$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="SVM",metric=names(tmpVals),value=tmpVals))
   tmpVals
   
-  #SVM Test Error:
+  #SVM Training Error:
   svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear") 
   svmTestPred = predict(svmResult, newdata=Test[,2:size])
   tmpVals = summPreds(predict(svmResult,newdata=Train[,2:size]),Train$cat)
@@ -173,8 +173,8 @@ p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="whi
 
 p
 ```
-
-```{r}
+This is what I am currently working on testing 
+```{r warning=FALSE}
 library(readxl)
 model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
 
@@ -182,6 +182,68 @@ dim(model)
 size = ncol(model) -1
 
 
+for ( iSim in 1:100 ) {
+  dfTmpLR <- NULL
+  dfTmpRF <- NULL
+  dfTmpNB <- NULL
+  dfTmpLDA <- NULL
+  dfTmpSVM <- NULL
+  dfTmp = NULL
+  svmTuneRes = NULL
+  Train = NULL
+  Test = NULL
+  dfTmpKNN = NULL
+  
+  
+    bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
+    Train <- model[bTrain,]
+    Test <- model[-bTrain,]
+    Test = as.data.frame(Test)
+    Train$cat = as.numeric(as.factor(Train$cat))
+    Test$cat = as.numeric(as.factor(Test$cat))
+  
+  
+  T2 = Train[1:500,c(1,5,9,79)]
+  T3 = Train[1:500,c(1,6,10,79)]
+  
+    #SVM Test Error:
+    #svmResult = svm(T2$cat~.,data=T2[,2:3],kernel="linear",scale = FALSE) 
+   # glmTrain <- glm(as.factor(T2$cat)~.,data=T2[,2:3],family=binomial)
+   # plot(svmResult,T2,T2$LNTcon1~T2$LNTfh1)
+    
+    #plot(x = log(1+ T2$LNTcon1),y = log(1+ T2$LNTfh1),svmResult,col =T2$cat, pch=as.numeric(predict(svmResult)))
+  #Works
+  #    glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
+  #   svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear") 
+      
+  #LR    
+  glmTrain <- glm(as.factor(T2$cat)~T2$LNTfh1 + T2$LNTreg2,data=T2,family=binomial)
+  tmpVals_LR = summPreds(predict(glmTrain,newdata=T3),T3$cat)
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LR",metric=names(tmpVals),value=tmpVals_LR))
+  
+  #SVM
+  svmResult = svm(T2$cat~T2$LNTfh1 + T2$LNTreg2,data=T2,kernel="linear",scale = FALSE) 
+  tmpVals_SVM = summPreds(predict(svmResult,newdata=T3),T3$cat)  
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="SVM",metric=names(tmpVals),value=tmpVals_SVM))
+  
+  tmpVals_LR
+  tmpVals_SVM
+  
+}
+
+p = NULL
+p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
+
+p
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
 dfTmpLR <- NULL
 dfTmpRF <- NULL
 dfTmpNB <- NULL
@@ -193,7 +255,6 @@ Train = NULL
 Test = NULL
 dfTmpKNN = NULL
 
-
   bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
   Train <- model[bTrain,]
   Test <- model[-bTrain,]
@@ -201,39 +262,11 @@ dfTmpKNN = NULL
   Train$cat = as.numeric(as.factor(Train$cat))
   Test$cat = as.numeric(as.factor(Test$cat))
 
+glmTrain <- glm(as.factor(T2$cat)~T2$LNTfh1 + T2$LNTreg2,data=T2,family=binomial)
+tmpVals_LR = summPreds(predict(glmTrain,newdata=T3),T3$cat)
+svmResult = svm(T2$cat~T2$LNTfh1 + T2$LNTreg2,data=T2,kernel="linear",scale = FALSE) 
+tmpVals_SVM = summPreds(predict(svmResult,newdata=T3),T3$cat)    
 
-T2 = Train[1:500,c(1,2,5,79)]
-
-  #SVM Test Error:
-  #svmResult = svm(T2$cat~.,data=T2[,2:3],kernel="linear",scale = FALSE) 
- # glmTrain <- glm(as.factor(T2$cat)~.,data=T2[,2:3],family=binomial)
- # plot(svmResult,T2,T2$LNTcon1~T2$LNTfh1)
   
-  #plot(x = log(1+ T2$LNTcon1),y = log(1+ T2$LNTfh1),svmResult,col =T2$cat, pch=as.numeric(predict(svmResult)))
-    glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
-    svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear") 
-    
-```
-
-
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
-```{r}
-data(cats, package = "MASS")
-m <- svm(Sex~., data = cats)
-plot(m, cats)
-
-## more than two variables: fix 2 dimensions
-data(iris)
-m2 <- svm(Species~., data = iris)
-plot(m2, iris, Petal.Width ~ Petal.Length,
-     slice = list(Sepal.Width = 3, Sepal.Length = 4))
-
-## plot with custom symbols and colors
-plot(m, cats, svSymbol = 1, dataSymbol = 2, symbolPalette = rainbow(4),
-color.palette = terrain.colors)
 ```
 
