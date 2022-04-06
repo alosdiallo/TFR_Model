@@ -8,7 +8,28 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
 
 
+
+
 ```{r}
+summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) {
+  retVals <- numeric()
+  for ( metrTmp in inpMetrNms ) {
+    retVals[metrTmp] <- performance(prediction(inpPred,inpTruth),measure=metrTmp)@y.values[[1]][2]
+  }
+  retVals
+}
+```
+
+
+```{r}
+
+library(readxl)
+model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
+
+dim(model)
+size = ncol(model) -1
+
+
 dfTmpLR <- NULL
 dfTmpRF <- NULL
 dfTmpNB <- NULL
@@ -28,28 +49,31 @@ dfTmpKNN = NULL
   Train$cat = as.numeric(as.factor(Train$cat))
   Test$cat = as.numeric(as.factor(Test$cat))
 
-# LDA:
-ldaTrain <- lda(Train$cat~.,data=Train[,2:size],cv = TRUE)
-ldaTestPred <- predict(ldaTrain, newdata=Train[,2:size])
-tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Train$cat))
 
 
-dfTmp <- rbind(dfTmp,data.frame(resample=c("Bootstrap"),type="LDA",metric=names(tmpVals),value=tmpVals))
-dfTmpLDA <- rbind(dfTmpLDA,data.frame(resample=c("Bootstrap"),type="LDA",metric=names(tmpVals),value=tmpVals))
+  #SVM Test Error:
+  svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear",scale = FALSE) 
+  
+  
+  svmTestPred = predict(svmResult, newdata=Test[,2:size])
+  tmpVals = summPreds(predict(svmResult,newdata=Train[,2:size],scale = FALSE),Train$cat)
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="SVM",metric=names(tmpVals),value=tmpVals))
+  tmpVals
 
-# NB:
-Y = factor(as.numeric(as.factor(Train$cat)))
-nbTrain <- naiveBayes(Y~.,data=Train[,2:size])
-nbTestPred = predict(nbTrain, newdata=Test[,2:size])
-tmpVals = summPreds(as.numeric(nbTestPred),as.numeric(as.factor(Test$cat)))
-dfTmp <- rbind(dfTmp,data.frame(resample=c("Bootstrap"),type="NB",metric=names(tmpVals),value=tmpVals))
-dfTmpNB <- rbind(dfTmpNB,data.frame(resample=c("Bootstrap"),type="NB",metric=names(tmpVals),value=tmpVals))
-
+        
 
 ```
 
 
 ```{r warning=FALSE}
+
+library(readxl)
+model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
+
+
+dim(model)
+size = ncol(model) -1
+
 dfTmpLR <- NULL
 dfTmpLR_train <- NULL
 dfTmpRF <- NULL
@@ -96,6 +120,44 @@ for ( iSim in 1:100 ) {
   tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Test$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LDA",metric=names(tmpVals),value=tmpVals))
   
+  # NB Training Error:
+  Y = factor(as.numeric(as.factor(Train$cat)))
+  nbTrain <- naiveBayes(Y~.,data=Train[,2:size])
+  nbTestPred = predict(nbTrain, newdata=Train[,2:size])
+  tmpVals = summPreds(as.numeric(nbTestPred),as.numeric(as.factor(Train$cat)))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="NB",metric=names(tmpVals),value=tmpVals))
+  
+  # NB Test Error:
+  Y = factor(as.numeric(as.factor(Train$cat)))
+  nbTrain <- naiveBayes(Y~.,data=Train[,2:size])
+  nbTestPred = predict(nbTrain, newdata=Test[,2:size])
+  tmpVals = summPreds(as.numeric(nbTestPred),as.numeric(as.factor(Test$cat)))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="NB",metric=names(tmpVals),value=tmpVals))
+  
+  #SVM Training Error:
+  svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear") 
+  svmTestPred = predict(svmResult, newdata=Test[,2:size])
+  tmpVals = summPreds(predict(svmResult,newdata=Test[,2:size]),Test$cat)
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="SVM",metric=names(tmpVals),value=tmpVals))
+  tmpVals
+  
+  #SVM Test Error:
+  svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear") 
+  svmTestPred = predict(svmResult, newdata=Test[,2:size])
+  tmpVals = summPreds(predict(svmResult,newdata=Train[,2:size]),Train$cat)
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="SVM",metric=names(tmpVals),value=tmpVals))
+  
+  #RF Test Error:
+  Y = factor(as.numeric(as.factor(Train$cat)))
+  rfTmp <- randomForest(Y~.,data=Train[,2:size],mTry = 10)
+  rfTestPred <- predict(rfTmp,newdata=Test)
+  mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
+  tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="RF",metric=names(tmpVals),value=tmpVals))
+  
+  
+
+    
 }
 
 ```
@@ -113,7 +175,44 @@ p
 ```
 
 ```{r}
+library(readxl)
+model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
 
+dim(model)
+size = ncol(model) -1
+
+
+dfTmpLR <- NULL
+dfTmpRF <- NULL
+dfTmpNB <- NULL
+dfTmpLDA <- NULL
+dfTmpSVM <- NULL
+dfTmp = NULL
+svmTuneRes = NULL
+Train = NULL
+Test = NULL
+dfTmpKNN = NULL
+
+
+  bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
+  Train <- model[bTrain,]
+  Test <- model[-bTrain,]
+  Test = as.data.frame(Test)
+  Train$cat = as.numeric(as.factor(Train$cat))
+  Test$cat = as.numeric(as.factor(Test$cat))
+
+
+T2 = Train[1:500,c(1,2,5,79)]
+
+  #SVM Test Error:
+  #svmResult = svm(T2$cat~.,data=T2[,2:3],kernel="linear",scale = FALSE) 
+ # glmTrain <- glm(as.factor(T2$cat)~.,data=T2[,2:3],family=binomial)
+ # plot(svmResult,T2,T2$LNTcon1~T2$LNTfh1)
+  
+  #plot(x = log(1+ T2$LNTcon1),y = log(1+ T2$LNTfh1),svmResult,col =T2$cat, pch=as.numeric(predict(svmResult)))
+    glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
+    svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear") 
+    
 ```
 
 
@@ -122,3 +221,19 @@ Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by press
 When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
 
 The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
+data(cats, package = "MASS")
+m <- svm(Sex~., data = cats)
+plot(m, cats)
+
+## more than two variables: fix 2 dimensions
+data(iris)
+m2 <- svm(Species~., data = iris)
+plot(m2, iris, Petal.Width ~ Petal.Length,
+     slice = list(Sepal.Width = 3, Sepal.Length = 4))
+
+## plot with custom symbols and colors
+plot(m, cats, svSymbol = 1, dataSymbol = 2, symbolPalette = rainbow(4),
+color.palette = terrain.colors)
+```
+
