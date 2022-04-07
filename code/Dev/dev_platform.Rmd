@@ -181,7 +181,6 @@ model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Traini
 dim(model)
 size = ncol(model) -1
 
-
 for ( iSim in 1:100 ) {
   dfTmpLR <- NULL
   dfTmpRF <- NULL
@@ -203,8 +202,8 @@ for ( iSim in 1:100 ) {
     Test$cat = as.numeric(as.factor(Test$cat))
   
   
-  T2 = Train[1:500,c(1,5,9,79)]
-  T3 = Train[1:500,c(1,6,10,79)]
+  T2 = Train[1:623,c(1,5,7,9,11,79)]
+  T3 = Test[,c(1,5,7,9,11,79)]
   
     #SVM Test Error:
     #svmResult = svm(T2$cat~.,data=T2[,2:3],kernel="linear",scale = FALSE) 
@@ -217,12 +216,12 @@ for ( iSim in 1:100 ) {
   #   svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear") 
       
   #LR    
-  glmTrain <- glm(as.factor(T2$cat)~T2$LNTfh1 + T2$LNTreg2,data=T2,family=binomial)
+  glmTrain <- glm(as.factor(T2$cat)~T2$LNTfh1 + T2$LNTreg2 + T2$LNTfh3 + T2$LNTfr1,data=T2,family=binomial)
   tmpVals_LR = summPreds(predict(glmTrain,newdata=T3),T3$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LR",metric=names(tmpVals),value=tmpVals_LR))
   
   #SVM
-  svmResult = svm(T2$cat~T2$LNTfh1 + T2$LNTreg2,data=T2,kernel="linear",scale = FALSE) 
+  svmResult = svm(T2$cat~T2$LNTfh1 + T2$LNTreg2 + T2$LNTfh3 + T2$LNTfr1,data=T2,kernel="linear",scale = FALSE) 
   tmpVals_SVM = summPreds(predict(svmResult,newdata=T3),T3$cat)  
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="SVM",metric=names(tmpVals),value=tmpVals_SVM))
   
@@ -233,7 +232,7 @@ for ( iSim in 1:100 ) {
 
 p = NULL
 p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
-
+ 
 p
 ```
 
