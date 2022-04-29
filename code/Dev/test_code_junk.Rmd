@@ -1,0 +1,282 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This script will test various statistical models against the various datasets to determine which would work best for the development of a TFR model.  This work is in support of the paper: “The Development of a TFR Gene Expression Data Set using Random Forest”
+The work required an excel file containing the training and test dataset.  This can be set in the code.
+ 
+
+These are the libraries used for this project:
+```{r message=FALSE, include=FALSE}
+library(grid)
+library(corrplot)
+library(caret)
+library(e1071)
+library(ROCR)
+library(ggplot2)
+library(GGally)
+library(PerformanceAnalytics)
+library(factoextra)
+library(corrplot)
+library(Rtsne)
+library(FactoMineR)
+library(ggplot2)
+library(factoextra)
+library(survminer)
+library(ggcorrplot)
+library(readr)
+library(circlize)
+library(readxl)
+library(stringr)
+library(reshape)
+library(psych)
+
+library(ggpubr)
+library(readr)
+library(gridExtra)
+library(cowplot)
+library(MASS)
+library(fitdistrplus)
+#BiocManager::install("preprocessCore")
+
+library(MASS)
+library(class)
+library(ggplot2)
+library(reshape2)
+library(ROCR)
+library(e1071)
+library(GGally)
+library(klaR)
+library(randomForest)
+```
+
+This is a function used to get the metrics from the perfomrance package. 
+```{r}
+summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) {
+  retVals <- numeric()
+  for ( metrTmp in inpMetrNms ) {
+    retVals[metrTmp] <- performance(prediction(inpPred,inpTruth),measure=metrTmp)@y.values[[1]][2]
+  }
+  retVals
+}
+```
+
+
+Loading in the training and test data:
+```{r include=FALSE}
+model = NULL
+library(here)
+here("/Data/Training_Test_Set.xlsx")
+getwd()
+library(readxl)
+model <- read_excel("/Users/adiallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
+
+library(tidyverse)
+model %>% select_if(negate(is.numeric))
+
+```
+
+Getting some information on the data.  You don't have to run this.
+```{r}
+dim(model)
+size = ncol(model) -1
+multi.hist(model[,2:size]) 
+```
+
+THIS CODE WORKS
+
+```{r testerr,warning=FALSE}
+
+dfTmpLR <- NULL
+dfTmpRF <- NULL
+dfTmpNB <- NULL
+dfTmpLDA <- NULL
+dfTmpSVM <- NULL
+dfTmp = NULL
+svmTuneRes = NULL
+Train = NULL
+Test = NULL
+dfTmpKNN = NULL
+
+for ( iResample in 1:2 ) {
+  for ( iSim in 1:10 ) {
+    bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
+    Train <- model[bTrain,]
+    Test <- model[-bTrain,]
+    Test = as.data.frame(Test)
+    Train$cat = as.numeric(as.factor(Train$cat))
+    Test$cat = as.numeric(as.factor(Test$cat))
+  if ( iResample == 2 ) {
+    bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
+    Train <- model[bTrain,]
+    Test <- model[-bTrain,]
+    Test = as.data.frame(Test)
+    Train$cat = as.numeric(as.factor(Train$cat))
+    Test$cat = as.numeric(as.factor(Test$cat))
+    }
+# logistic regression:
+glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
+glmTestPred <- predict(glmTrain, newdata=Test[,2:size], type="response") > 0.5
+tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
+dfTmpLR <- rbind(dfTmpLR,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LR",metric=names(tmpVals),value=tmpVals))
+  
+#RF
+Y = factor(as.numeric(as.factor(Train$cat)))
+rfTmp <- randomForest(Y~.,data=Train[,2:size],mTry = 10)
+rfTestPred <- predict(rfTmp,newdata=Test)
+mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
+tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF",metric=names(tmpVals),value=tmpVals))
+dfTmpRF <- rbind(dfTmpRF,data.frame(resample=c("Validation","Bootstrap")[iResample],type="RF",metric=names(tmpVals),value=tmpVals))
+# LDA:
+ldaTrain <- lda(Train$cat~.,data=Train[,2:size])
+ldaTestPred <- predict(ldaTrain, newdata=Test[,2:size])
+tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Test$cat))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LDA",metric=names(tmpVals),value=tmpVals))
+dfTmpLDA <- rbind(dfTmpLDA,data.frame(resample=c("Validation","Bootstrap")[iResample],type="LDA",metric=names(tmpVals),value=tmpVals))
+# NB:
+Y = factor(as.numeric(as.factor(Train$cat)))
+nbTrain <- naiveBayes(Y~.,data=Train[,2:size])
+nbTestPred = predict(nbTrain, newdata=Test[,2:size])
+tmpVals = summPreds(as.numeric(nbTestPred),as.numeric(as.factor(Test$cat)))
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
+dfTmpNB <- rbind(dfTmpNB,data.frame(resample=c("Validation","Bootstrap")[iResample],type="NB",metric=names(tmpVals),value=tmpVals))
+#SVM
+svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="radial",cost=20,gamma = .1)
+svmTestPred = predict(svmResult, newdata=Test[,2:size])
+tmpVals = summPreds(predict(svmResult,newdata=Test[,2:size]),Test$cat)
+dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="SVM",metric=names(tmpVals),value=tmpVals))
+dfTmpSVM <- rbind(dfTmpSVM,data.frame(resample=c("Validation","Bootstrap")[iResample],type="SVM",metric=names(tmpVals),value=tmpVals))
+# KNN:
+for ( kTmp in c(10,20,150,300) ) {
+  knnTestPred <- knn(Train[,2:size],Test[,2:size],Train$cat,k=kTmp)
+  tmpVals <- summPreds(as.numeric(knnTestPred),as.numeric(Test$cat))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Validation","Bootstrap")[iResample],type="KNN",metric=names(tmpVals),value=tmpVals))
+  dfTmpKNN <- rbind(dfTmpKNN,data.frame(resample=c("Validation","Bootstrap")[iResample],type="KNN",metric=names(tmpVals),value=tmpVals))
+ 
+  }
+  }
+}
+```
+
+Here we have the performance metrics for each model.  
+```{r}
+p = NULL
+p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
+
+p
+```
+Currently testing this code
+```{r}
+
+for ( iSim in 1:40 ) {
+dfTmpLR <- NULL
+dfTmpRF <- NULL
+dfTmpNB <- NULL
+dfTmpLDA <- NULL
+dfTmpSVM <- NULL
+dfTmp = NULL
+svmTuneRes = NULL
+Train = NULL
+Test = NULL
+dfTmpKNN = NULL
+
+cols_to_use = 14:78
+bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
+model2 = model[,c(1,cols_to_use,79)]
+dim(model2)
+size = ncol(model2) 
+
+Train <- model2[bTrain,]
+Test <- model2[-bTrain,]
+Test = as.data.frame(Test)
+Train$cat = as.numeric(as.factor(Train$cat))
+Test$cat = as.numeric(as.factor(Test$cat))
+
+  # logistic regression Test error:
+  glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
+  glmTestPred <- predict(glmTrain, newdata=Test[,2:size], type="response") > 0.5
+  tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LR",metric=names(tmpVals),value=tmpVals))
+
+  # logistic regression Training Error:
+  glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
+  tmpVals <- summPreds(as.numeric(predict(glmTrain,type="response") > 0.5) +1,as.factor(Train$cat))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="LR",metric=names(tmpVals),value=tmpVals))
+  
+  #SVM Test Error:
+  svmResult = svm(factor(cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
+  svmTestPred = predict(svmResult, newdata=Test[,2:size])
+  tmpVals = summPreds(as.numeric(predict(svmResult,newdata=Test[,2:size])),Test$cat)
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="SVM",metric=names(tmpVals),value=tmpVals))
+  tmpVals
+  
+  #SVM Training Error:
+  svmResult = svm(factor(cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
+  svmTestPred = predict(svmResult, newdata=Test[,2:size])
+  tmpVals = summPreds(as.numeric(predict(svmResult,newdata=Train[,2:size])),Train$cat)
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="SVM",metric=names(tmpVals),value=tmpVals))
+  
+}
+```
+```{r}
+p = NULL
+p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
+
+p
+```
+
+```{r}
+
+dfTmpLR <- NULL
+dfTmpRF <- NULL
+dfTmpNB <- NULL
+dfTmpLDA <- NULL
+dfTmpSVM <- NULL
+dfTmp = NULL
+svmTuneRes = NULL
+Train = NULL
+Test = NULL
+dfTmpKNN = NULL
+
+cols_to_use = 2:10
+bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
+model2 = model[,c(1,cols_to_use,79)]
+dim(model2)
+size = ncol(model2) 
+
+Train <- model2[bTrain,]
+Test <- model2[-bTrain,]
+Test = as.data.frame(Test)
+Train$cat = as.numeric(as.factor(Train$cat))
+Test$cat = as.numeric(as.factor(Test$cat))
+
+CV_Control <- trainControl(## 10-fold CV
+                           method = "repeatedcv",
+                           number = 10,
+                           ## repeated ten times
+                           repeats = 10)
+
+set.seed(1142325)
+
+tune.out <- tune(svm, factor(cat)~., data=Train[,2:size], trControl = CV_Control,kernel="linear", ranges=list(cost=c(0.001, 0.01, 0.1, 1, 5, 10, 100)))
+summary(tune.out)
+
+# best model:
+bestmod <- tune.out$best.model
+summary(bestmod)
+
+metrics = tune.out$performances
+errors = metrics$error
+
+boxplot(errors,ylab = "Error")
+title("Boxplot of SVM errors")
+
+```
+```{r}
+Train$LNTcon1 + Train$LNTcon2 + Train$LNTcon3 + Train$LNTfh1 + Train$LNTfh2 + Train$LNTfh3 + Train$LNTreg1 +Train$LNTreg2 + Train$LNTreg3
+```
+
+
