@@ -6,7 +6,48 @@ output: html_notebook
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
 
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
-
+```{r message=FALSE, include=FALSE}
+library(grid)
+library(corrplot)
+library(caret)
+library(e1071)
+library(ROCR)
+library(ggplot2)
+library(GGally)
+library(PerformanceAnalytics)
+library(factoextra)
+library(corrplot)
+library(Rtsne)
+library(FactoMineR)
+library(ggplot2)
+library(factoextra)
+library(survminer)
+library(ggcorrplot)
+library(readr)
+library(circlize)
+library(readxl)
+library(stringr)
+library(reshape)
+library(psych)
+library(ComplexHeatmap)
+library(ggpubr)
+library(readr)
+library(gridExtra)
+library(cowplot)
+library(MASS)
+library(fitdistrplus)
+#BiocManager::install("preprocessCore")
+library(preprocessCore)
+library(MASS)
+library(class)
+library(ggplot2)
+library(reshape2)
+library(ROCR)
+library(e1071)
+library(GGally)
+library(klaR)
+library(randomForest)
+```
 
 
 
@@ -70,12 +111,8 @@ dfTmpKNN = NULL
 library(readxl)
 model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
 
-
-dim(model)
-size = ncol(model) -1
-
+for ( iSim in 1:100 ) {
 dfTmpLR <- NULL
-dfTmpLR_train <- NULL
 dfTmpRF <- NULL
 dfTmpNB <- NULL
 dfTmpLDA <- NULL
@@ -86,78 +123,93 @@ Train = NULL
 Test = NULL
 dfTmpKNN = NULL
 
+cols_to_use = 14:78
+bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
+model2 = model[,c(1,cols_to_use,79)]
+dim(model2)
+size = ncol(model2) 
 
+Train <- model2[bTrain,]
+Test <- model2[-bTrain,]
+Test = as.data.frame(Test)
+Train$cat = as.numeric(as.factor(Train$cat))
+Test$cat = as.numeric(as.factor(Test$cat))
+  
 
-
-for ( iSim in 1:100 ) {
-  bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
-  Train <- model[bTrain,]
-  Test <- model[-bTrain,]
-  Test = as.data.frame(Test)
-  Train$cat = as.numeric(as.factor(Train$cat))
-  Test$cat = as.numeric(as.factor(Test$cat))
-
-  # logistic regression Test error:
-  glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
+  # Changed logistic regression Test error:
+  glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
   glmTestPred <- predict(glmTrain, newdata=Test[,2:size], type="response") > 0.5
   tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LR",metric=names(tmpVals),value=tmpVals))
 
-  # logistic regression Training Error:
-  glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
-  tmpVals <- summPreds(glmTrain$fitted.values+1,as.factor(Train$cat))
+  # Changed logistic regression Training Error:
+  glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
+  tmpVals <- summPreds(as.numeric(predict(glmTrain,type="response") > 0.5) +1,as.factor(Train$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="LR",metric=names(tmpVals),value=tmpVals))
   
-  # LDA Training Error:
-  ldaTrain <- lda(Train$cat~.,data=Train[,2:size],cv = TRUE)
+  # Changed LDA Training Error:
+  ldaTrain <- lda(cat~.,data=Train[,2:size],cv = TRUE)
   ldaTestPred <- predict(ldaTrain, newdata=Train[,2:size])
   tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Train$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="LDA",metric=names(tmpVals),value=tmpVals))
   
-  # LDA Test Error:
-  ldaTrain <- lda(Train$cat~.,data=Train[,2:size])
+  # Changed LDA Test Error:
+  ldaTrain <- lda(cat~.,data=Train[,2:size])
   ldaTestPred <- predict(ldaTrain, newdata=Test[,2:size])
   tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Test$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LDA",metric=names(tmpVals),value=tmpVals))
   
-  # NB Training Error:
-  Y = factor(as.numeric(as.factor(Train$cat)))
-  nbTrain <- naiveBayes(Y~.,data=Train[,2:size])
-  nbTestPred = predict(nbTrain, newdata=Train[,2:size])
-  tmpVals = summPreds(as.numeric(nbTestPred),as.numeric(as.factor(Train$cat)))
+  # Changed NB Training Error:
+  nbTrain <- naiveBayes(cat~.,data=Train[,2:size])
+  nbTrainPred = predict(nbTrain, newdata=Train[,2:size])
+  tmpVals = summPreds(as.numeric(nbTrainPred),Train$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="NB",metric=names(tmpVals),value=tmpVals))
   
-  # NB Test Error:
-  Y = factor(as.numeric(as.factor(Train$cat)))
-  nbTrain <- naiveBayes(Y~.,data=Train[,2:size])
+  # Changed NB Test Error:
+  nbTrain <- naiveBayes(cat~.,data=Train[,2:size])
   nbTestPred = predict(nbTrain, newdata=Test[,2:size])
-  tmpVals = summPreds(as.numeric(nbTestPred),as.numeric(as.factor(Test$cat)))
+  tmpVals = summPreds(as.numeric(nbTestPred),Test$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="NB",metric=names(tmpVals),value=tmpVals))
   
-  #SVM Test Error:
-  svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear") 
+  # changed SVM Test Error:
+  svmResult = svm(factor(cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
   svmTestPred = predict(svmResult, newdata=Test[,2:size])
-  tmpVals = summPreds(predict(svmResult,newdata=Test[,2:size]),Test$cat)
+  tmpVals = summPreds(as.numeric(predict(svmResult,newdata=Test[,2:size])),Test$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="SVM",metric=names(tmpVals),value=tmpVals))
-  tmpVals
   
-  #SVM Training Error:
-  svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear") 
+  # changed SVM Training Error:
+  svmResult = svm(factor(cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
   svmTestPred = predict(svmResult, newdata=Test[,2:size])
-  tmpVals = summPreds(predict(svmResult,newdata=Train[,2:size]),Train$cat)
+  tmpVals = summPreds(as.numeric(predict(svmResult,newdata=Train[,2:size])),Train$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="SVM",metric=names(tmpVals),value=tmpVals))
   
-  #RF Test Error:
-  Y = factor(as.numeric(as.factor(Train$cat)))
-  rfTmp <- randomForest(Y~.,data=Train[,2:size],mTry = 10)
+  # changed RF Test Error:
+  rfTmp <- randomForest(factor(cat)~.,data=Train[,2:size],mTry = 10)
   rfTestPred <- predict(rfTmp,newdata=Test)
-  mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
-  tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
+  tmpVals <- summPreds(as.numeric(Test$cat),as.numeric(rfTestPred))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="RF",metric=names(tmpVals),value=tmpVals))
   
+  # changed RF Training Error:
+  rfTmp <- randomForest(factor(cat)~.,data=Train[,2:size],mTry = 10)
+  rfTrainPred <- predict(rfTmp, newdata=Train[,2:size])
+  tmpVals <- summPreds(as.numeric(rfTrainPred),Train$cat)
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="RF",metric=names(tmpVals),value=tmpVals))
   
-
-    
+  # changed KNN Test Error:
+  for ( kTmp in c(10,20,150,300) ) {
+  knnTestPred <- knn(Train[,2:size],Test[,2:size],factor(Train$cat),k=kTmp)
+  tmpVals <- summPreds(as.numeric(knnTestPred),as.numeric(Test$cat))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="KNN",metric=names(tmpVals),value=tmpVals))
+  }
+  
+  # changed KNN Training Error:
+  for ( kTmp in c(10,20,150,300) ) {
+  knnTrainPred <- knn(Train[,2:size],Train[,2:size],factor(Train$cat),k=kTmp)
+  tmpVals <- summPreds(as.numeric(knnTrainPred),as.numeric(Train$cat))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="KNN",metric=names(tmpVals),value=tmpVals))
+  }
+  
+  
 }
 
 ```
@@ -173,76 +225,12 @@ p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="whi
 
 p
 ```
-This is what I am currently working on testing 
-```{r warning=FALSE}
-library(readxl)
-model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
-
-dim(model)
-size = ncol(model) -1
-
-for ( iSim in 1:100 ) {
-  dfTmpLR <- NULL
-  dfTmpRF <- NULL
-  dfTmpNB <- NULL
-  dfTmpLDA <- NULL
-  dfTmpSVM <- NULL
-  dfTmp = NULL
-  svmTuneRes = NULL
-  Train = NULL
-  Test = NULL
-  dfTmpKNN = NULL
-  
-  
-    bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
-    Train <- model[bTrain,]
-    Test <- model[-bTrain,]
-    Test = as.data.frame(Test)
-    Train$cat = as.numeric(as.factor(Train$cat))
-    Test$cat = as.numeric(as.factor(Test$cat))
-  
-  
-  T2 = Train[1:623,c(1,5,7,9,11,79)]
-  T3 = Test[,c(1,5,7,9,11,79)]
-  
-    #SVM Test Error:
-    #svmResult = svm(T2$cat~.,data=T2[,2:3],kernel="linear",scale = FALSE) 
-   # glmTrain <- glm(as.factor(T2$cat)~.,data=T2[,2:3],family=binomial)
-   # plot(svmResult,T2,T2$LNTcon1~T2$LNTfh1)
-    
-    #plot(x = log(1+ T2$LNTcon1),y = log(1+ T2$LNTfh1),svmResult,col =T2$cat, pch=as.numeric(predict(svmResult)))
-  #Works
-  #    glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
-  #   svmResult = svm(Train$cat~.,data=Train[,2:size],kernel="linear") 
-      
-  #LR    
-  glmTrain <- glm(as.factor(T2$cat)~T2$LNTfh1 + T2$LNTreg2 + T2$LNTfh3 + T2$LNTfr1,data=T2,family=binomial)
-  tmpVals_LR = summPreds(predict(glmTrain,newdata=T3),T3$cat)
-  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LR",metric=names(tmpVals),value=tmpVals_LR))
-  
-  #SVM
-  svmResult = svm(T2$cat~T2$LNTfh1 + T2$LNTreg2 + T2$LNTfh3 + T2$LNTfr1,data=T2,kernel="linear",scale = FALSE) 
-  tmpVals_SVM = summPreds(predict(svmResult,newdata=T3),T3$cat)  
-  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="SVM",metric=names(tmpVals),value=tmpVals_SVM))
-  
-  tmpVals_LR
-  tmpVals_SVM
-  
-}
-
-p = NULL
-p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
- 
-p
-```
 
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
 ```{r}
+for ( iSim in 1:40 ) {
 dfTmpLR <- NULL
 dfTmpRF <- NULL
 dfTmpNB <- NULL
@@ -254,18 +242,42 @@ Train = NULL
 Test = NULL
 dfTmpKNN = NULL
 
-  bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
-  Train <- model[bTrain,]
-  Test <- model[-bTrain,]
-  Test = as.data.frame(Test)
-  Train$cat = as.numeric(as.factor(Train$cat))
-  Test$cat = as.numeric(as.factor(Test$cat))
+cols_to_use = 14:78
+bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
+model2 = model[,c(1,cols_to_use,79)]
+dim(model2)
+size = ncol(model2) 
 
-glmTrain <- glm(as.factor(T2$cat)~T2$LNTfh1 + T2$LNTreg2,data=T2,family=binomial)
-tmpVals_LR = summPreds(predict(glmTrain,newdata=T3),T3$cat)
-svmResult = svm(T2$cat~T2$LNTfh1 + T2$LNTreg2,data=T2,kernel="linear",scale = FALSE) 
-tmpVals_SVM = summPreds(predict(svmResult,newdata=T3),T3$cat)    
+Train <- model2[bTrain,]
+Test <- model2[-bTrain,]
+Test = as.data.frame(Test)
+Train$cat = as.numeric(as.factor(Train$cat))
+Test$cat = as.numeric(as.factor(Test$cat))
 
+  # logistic regression Test error:
+  glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
+  glmTestPred <- predict(glmTrain, newdata=Test[,2:size], type="response") > 0.5
+  tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LR",metric=names(tmpVals),value=tmpVals))
+
+  # logistic regression Training Error:
+  glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
+  tmpVals <- summPreds(as.numeric(predict(glmTrain,type="response") > 0.5) +1,as.factor(Train$cat))
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="LR",metric=names(tmpVals),value=tmpVals))
   
+  #SVM Test Error:
+  svmResult = svm(factor(cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
+  svmTestPred = predict(svmResult, newdata=Test[,2:size])
+  tmpVals = summPreds(as.numeric(predict(svmResult,newdata=Test[,2:size])),Test$cat)
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="SVM",metric=names(tmpVals),value=tmpVals))
+  tmpVals
+  
+  #SVM Training Error:
+  svmResult = svm(factor(cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
+  svmTestPred = predict(svmResult, newdata=Test[,2:size])
+  tmpVals = summPreds(as.numeric(predict(svmResult,newdata=Train[,2:size])),Train$cat)
+  dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="SVM",metric=names(tmpVals),value=tmpVals))
+  
+}
 ```
 
