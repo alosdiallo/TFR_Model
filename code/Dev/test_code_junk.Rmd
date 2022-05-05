@@ -228,6 +228,7 @@ p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="whi
 p
 ```
 
+Code to pick the proper peram's for SVM
 ```{r}
 
 dfTmpLR <- NULL

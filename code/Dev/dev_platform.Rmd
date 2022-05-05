@@ -61,7 +61,7 @@ summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) 
 }
 ```
 
-
+Don't use
 ```{r}
 
 library(readxl)
@@ -105,7 +105,7 @@ dfTmpKNN = NULL
 
 ```
 
-
+Current code
 ```{r warning=FALSE}
 
 library(readxl)
@@ -160,14 +160,16 @@ Test$cat = as.numeric(as.factor(Test$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LDA",metric=names(tmpVals),value=tmpVals))
   
   # Changed NB Training Error:
-  nbTrain <- naiveBayes(cat~.,data=Train[,2:size])
-  nbTrainPred = predict(nbTrain, newdata=Train[,2:size])
+  Data_log_transformed = log(Train[,2:size] + 1)
+  nbTrain <- naiveBayes(cat~.,data=Data_log_transformed)
+  nbTrainPred = predict(nbTrain, newdata=Data_log_transformed)
   tmpVals = summPreds(as.numeric(nbTrainPred),Train$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="NB",metric=names(tmpVals),value=tmpVals))
   
   # Changed NB Test Error:
-  nbTrain <- naiveBayes(cat~.,data=Train[,2:size])
-  nbTestPred = predict(nbTrain, newdata=Test[,2:size])
+  Test_Data_log_transformed = log(Test[,2:size] + 1)
+  nbTrain <- naiveBayes(cat~.,data=Data_log_transformed)
+  nbTestPred = predict(nbTrain, newdata=Test_Data_log_transformed)
   tmpVals = summPreds(as.numeric(nbTestPred),Test$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="NB",metric=names(tmpVals),value=tmpVals))
   
@@ -279,5 +281,20 @@ Test$cat = as.numeric(as.factor(Test$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="SVM",metric=names(tmpVals),value=tmpVals))
   
 }
+```
+
+
+
+
+```{r}
+  
+
+v = log(Train[,2:size] + 1)
+  nbTrain <- naiveBayes(cat~.,data=v)
+  nbTrainPred = predict(nbTrain, newdata=v)
+  tmpVals = summPreds(as.numeric(nbTrainPred),Train$cat)
+  
+  
+  
 ```
 
