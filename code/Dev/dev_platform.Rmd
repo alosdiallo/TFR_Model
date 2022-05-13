@@ -144,7 +144,7 @@ Test$cat = as.numeric(as.factor(Test$cat))
 
   # Changed logistic regression Training Error:
   glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
-  tmpVals <- summPreds(as.numeric(predict(glmTrain,type="response") > 0.5) +1,as.factor(Train$cat))
+  tmpVals <- summPreds(as.numeric(predict(glmTrain,type="response") > 0.5)+1,as.factor(Train$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="LR",metric=names(tmpVals),value=tmpVals))
   
   # Changed LDA Training Error:
