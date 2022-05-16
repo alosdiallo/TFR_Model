@@ -104,7 +104,7 @@ Test = NULL
 dfTmpKNN = NULL
 
 cols_to_use = 14:78
-bTrain = sample(1:nrow(model),round(0.7*nrow(model)))
+bTrain = sample(1:nrow(model),round(0.7*nrow(model)),replace = TRUE)
 model2 = model[,c(1,cols_to_use,79)]
 dim(model2)
 size = ncol(model2) 
@@ -194,15 +194,18 @@ Test$cat = as.numeric(as.factor(Test$cat))
   
 }
 
+```
+
 Here we have the performance metrics for each model.  
+
 ```{r}
 p = NULL
 p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
-
-p
 ```
-```{r}
 
+
+```{r}
+p
 ```
 
 
