@@ -206,6 +206,11 @@ p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="whi
 
 ```{r}
 p
+
+ggsave(file="Figure1.svg", plot = p, width=300, height=225, units="mm", dpi=700)
+```
+```{r}
+getwd()
 ```
 
 
