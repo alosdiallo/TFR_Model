@@ -1,0 +1,106 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r message=FALSE, include=FALSE}
+library(grid)
+library(corrplot)
+library(caret)
+library(e1071)
+library(ROCR)
+library(ggplot2)
+library(GGally)
+library(PerformanceAnalytics)
+library(factoextra)
+library(corrplot)
+library(Rtsne)
+library(FactoMineR)
+library(ggplot2)
+library(factoextra)
+library(survminer)
+library(ggcorrplot)
+library(readr)
+library(circlize)
+library(readxl)
+library(stringr)
+library(reshape)
+library(psych)
+library(ComplexHeatmap)
+library(ggpubr)
+library(readr)
+library(gridExtra)
+library(cowplot)
+library(MASS)
+library(fitdistrplus)
+#BiocManager::install("preprocessCore")
+library(preprocessCore)
+library(MASS)
+library(class)
+library(ggplot2)
+library(reshape2)
+library(ROCR)
+library(e1071)
+library(GGally)
+library(klaR)
+library(randomForest)
+```
+
+
+
+```{r echo=TRUE}
+
+library(readxl)
+model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
+
+cols_to_use = 14:78
+bTrain = sample(1:nrow(model),round(0.7*nrow(model)),replace = TRUE)
+model2 = model[,c(1,cols_to_use,79)]
+dim(model2)
+size = ncol(model2) 
+
+Train <- model2[bTrain,]
+Test <- model2[-bTrain,]
+Test = as.data.frame(Test)
+Train$cat = as.numeric(as.factor(Train$cat))
+Test$cat = as.numeric(as.factor(Test$cat))
+
+#Logistic regression
+glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
+glmTestPred <- predict(glmTrain, newdata=Test[,2:size], type="response") > 0.5
+
+#Random Forest
+rfTmp <- randomForest(factor(cat)~.,data=Train[,2:size],mTry = 18,ntree = 1000)
+rfTestPred <- predict(rfTmp,newdata=Test[,1:size])
+
+#Support Vector Machine
+svmResult = svm(factor(cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
+svmTestPred = predict(svmResult, newdata=Test[,2:size])
+
+VI_F_RF=varImp(rfTmp, scale = FALSE)
+VI_F_LR=varImp(glmTrain , scale = FALSE)
+VI_F_SVM=importance(svmResult)
+VI_F_SVM = varImp(svmResult, scale = FALSE)
+VI_F
+#pdf("Importance_plot.pdf")
+varImpPlot(rfTmp,type=2)
+
+imp <- as.data.frame(VI_F)
+imp$varnames <- rownames(VI_F)
+imp = imp %>% arrange(MeanDecreaseGini)
+small = imp[55:65,]
+dotchart(small$MeanDecreaseGini,labels = small$varnames,color = brewer.pal(n = 8, name = "Dark2"))
+
+ggplot(data = imp, aes(x = MeanDecreaseGini,y = reorder(varnames, MeanDecreaseGini))) +
+geom_bar(stat="identity",fill = 'darkred')+
+labs(y = "Condition") +
+theme(legend.position = "top")
+
+
+
+p = ggplot(small, aes(x = MeanDecreaseGini, y = reorder(varnames, MeanDecreaseGini))) +
+  geom_point(aes(color = MeanDecreaseGini, size = MeanDecreaseGini), alpha = 0.5) 
+  p
+ggsave(file="Figure2B.svg", plot = p, width=300, height=225, units="mm", dpi=700)
+
+```
