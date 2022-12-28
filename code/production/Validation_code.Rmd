@@ -1,5 +1,5 @@
 ---
-title: "Test and Validation Error"
+title: "R Notebook"
 output: html_notebook
 ---
 
@@ -40,13 +40,8 @@ library(MASS)
 library(fitdistrplus)
 #BiocManager::install("preprocessCore")
 library(preprocessCore)
-library(MASS)
 library(class)
-library(ggplot2)
 library(reshape2)
-library(ROCR)
-library(e1071)
-library(GGally)
 library(klaR)
 library(randomForest)
 ```
@@ -86,7 +81,7 @@ multi.hist(model[,2:size])
 
 Here we are testing out the different models.
 
-```{r testerr,warning=FALSE}
+```{r warning=FALSE}
 
 library(readxl)
 model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
@@ -108,6 +103,7 @@ bTrain = sample(1:nrow(model),round(0.7*nrow(model)),replace = TRUE)
 model2 = model[,c(1,cols_to_use,79)]
 dim(model2)
 size = ncol(model2) 
+size = size -1
 
 Train <- model2[bTrain,]
 Test <- model2[-bTrain,]
@@ -116,75 +112,75 @@ Train$cat = as.numeric(as.factor(Train$cat))
 Test$cat = as.numeric(as.factor(Test$cat))
   
 
-  #logistic regression Test error:
-  glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
+  # Changed logistic regression Test error:
+  glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
   glmTestPred <- predict(glmTrain, newdata=Test[,2:size], type="response") > 0.5
   tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LR",metric=names(tmpVals),value=tmpVals))
 
-  #logistic regression Training Error:
-  glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
+  # Changed logistic regression Training Error:
+  glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
   tmpVals <- summPreds(as.numeric(predict(glmTrain,type="response") > 0.5)+1,as.factor(Train$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="LR",metric=names(tmpVals),value=tmpVals))
   
-  #LDA Training Error:
-  ldaTrain <- lda(cat~.,data=Train[,2:size],cv = TRUE)
+  # Changed LDA Training Error:
+  ldaTrain <- lda(Train$cat~.,data=Train[,2:size],cv = TRUE)
   ldaTestPred <- predict(ldaTrain, newdata=Train[,2:size])
   tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Train$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="LDA",metric=names(tmpVals),value=tmpVals))
   
-  #LDA Test Error:
-  ldaTrain <- lda(cat~.,data=Train[,2:size])
+  # Changed LDA Test Error:
+  ldaTrain <- lda(Train$cat~.,data=Train[,2:size])
   ldaTestPred <- predict(ldaTrain, newdata=Test[,2:size])
   tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Test$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LDA",metric=names(tmpVals),value=tmpVals))
   
-  #NB Training Error:
+  # Changed NB Training Error:
   Data_log_transformed = log(Train[,2:size] + 1)
-  nbTrain <- naiveBayes(cat~.,data=Data_log_transformed)
+  nbTrain <- naiveBayes(Train$cat~.,data=Data_log_transformed)
   nbTrainPred = predict(nbTrain, newdata=Data_log_transformed)
   tmpVals = summPreds(as.numeric(nbTrainPred),Train$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="NB",metric=names(tmpVals),value=tmpVals))
   
-  #NB Test Error:
+  # Changed NB Test Error:
   Test_Data_log_transformed = log(Test[,2:size] + 1)
-  nbTrain <- naiveBayes(cat~.,data=Data_log_transformed)
+  nbTrain <- naiveBayes(Train$cat~.,data=Data_log_transformed)
   nbTestPred = predict(nbTrain, newdata=Test_Data_log_transformed)
   tmpVals = summPreds(as.numeric(nbTestPred),Test$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="NB",metric=names(tmpVals),value=tmpVals))
   
-  #SVM Test Error:
-  svmResult = svm(factor(cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
+  # changed SVM Test Error:
+  svmResult = svm(factor(Train$cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
   svmTestPred = predict(svmResult, newdata=Test[,2:size])
   tmpVals = summPreds(as.numeric(predict(svmResult,newdata=Test[,2:size])),Test$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="SVM",metric=names(tmpVals),value=tmpVals))
   
-  #SVM Training Error:
-  svmResult = svm(factor(cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
+  # changed SVM Training Error:
+  svmResult = svm(factor(Train$cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
   svmTestPred = predict(svmResult, newdata=Test[,2:size])
   tmpVals = summPreds(as.numeric(predict(svmResult,newdata=Train[,2:size])),Train$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="SVM",metric=names(tmpVals),value=tmpVals))
   
-  #RF Test Error:
-  rfTmp <- randomForest(factor(cat)~.,data=Train[,2:size],mTry = 10)
+  # changed RF Test Error:
+  rfTmp <- randomForest(factor(Train$cat)~.,data=Train[,2:size],mTry = 10)
   rfTestPred <- predict(rfTmp,newdata=Test)
   tmpVals <- summPreds(as.numeric(Test$cat),as.numeric(rfTestPred))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="RF",metric=names(tmpVals),value=tmpVals))
   
-  #RF Training Error:
-  rfTmp <- randomForest(factor(cat)~.,data=Train[,2:size],mTry = 10)
+  # changed RF Training Error:
+  rfTmp <- randomForest(factor(Train$cat)~.,data=Train[,2:size],mTry = 10)
   rfTrainPred <- predict(rfTmp, newdata=Train[,2:size])
   tmpVals <- summPreds(as.numeric(rfTrainPred),Train$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="RF",metric=names(tmpVals),value=tmpVals))
   
-  #KNN Test Error:
+  # changed KNN Test Error:
   for ( kTmp in c(10,20,150,300) ) {
   knnTestPred <- knn(Train[,2:size],Test[,2:size],factor(Train$cat),k=kTmp)
   tmpVals <- summPreds(as.numeric(knnTestPred),as.numeric(Test$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="KNN",metric=names(tmpVals),value=tmpVals))
   }
   
-  #KNN Training Error:
+  # changed KNN Training Error:
   for ( kTmp in c(10,20,150,300) ) {
   knnTrainPred <- knn(Train[,2:size],Train[,2:size],factor(Train$cat),k=kTmp)
   tmpVals <- summPreds(as.numeric(knnTrainPred),as.numeric(Train$cat))
@@ -193,14 +189,24 @@ Test$cat = as.numeric(as.factor(Test$cat))
   
   
 }
+
 ```
 
-Here we have the performance metrics for each model.
+Here we have the performance metrics for each model.  
+
 ```{r}
 p = NULL
 p = ggplot(dfTmp,aes(x=type,y=100*value,colour = type)) + geom_boxplot(fill="white") + geom_point() + facet_wrap(~resample+metric,ncol=4,scales="free") + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
+```
 
+
+```{r}
 p
+
+ggsave(file="Figure1.svg", plot = p, width=300, height=225, units="mm", dpi=700)
+```
+```{r}
+getwd()
 ```
 
 

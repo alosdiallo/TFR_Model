@@ -1,0 +1,414 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Loading packages
+
+```{r message=FALSE, include=FALSE}
+library(dplyr)
+library(readxl)
+library(grid)
+library(corrplot)
+library(caret)
+library(e1071)
+library(ROCR)
+library(ggplot2)
+library(GGally)
+library(PerformanceAnalytics)
+library(factoextra)
+library(corrplot)
+library(Rtsne)
+library(FactoMineR)
+library(ggplot2)
+library(factoextra)
+library(survminer)
+library(ggcorrplot)
+library(readr)
+library(circlize)
+library(readxl)
+library(stringr)
+library(reshape)
+library(psych)
+library(ComplexHeatmap)
+library(ggpubr)
+library(readr)
+library(gridExtra)
+library(cowplot)
+library(MASS)
+library(fitdistrplus)
+#BiocManager::install("preprocessCore")
+library(preprocessCore)
+library(MASS)
+library(class)
+library(ggplot2)
+library(reshape2)
+library(ROCR)
+library(e1071)
+library(GGally)
+library(klaR)
+library(randomForest)
+
+```
+
+Loading the data:
+
+
+```{r}
+model_4_21_95wRAW = NULL
+model_2_7_21_new = NULL
+model_2_7_21_new <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
+
+model_4_21_95wRAW <- model_2_7_21_new
+#library(tidyverse)
+#model_4_21_95wRAW %>% select_if(negate(is.numeric))
+
+dim(model_2_7_21_new)
+```
+
+```{r}
+summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) {
+  retVals <- numeric()
+  for ( metrTmp in inpMetrNms ) {
+    retVals[metrTmp] <- performance(prediction(inpPred,inpTruth),measure=metrTmp)@y.values[[1]][2]
+  }
+  retVals
+}
+```
+
+
+```{r}
+    Train = NULL
+    Test = NULL
+    bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)))
+    Train <- model_4_21_95wRAW[bTrain,2:79]
+    Test <- model_4_21_95wRAW[-bTrain,2:79]
+    Test = as.data.frame(Test)
+              Train$cat = as.numeric(as.factor(Train$cat))
+          Test$cat = as.numeric(as.factor(Test$cat))
+          
+          
+```
+
+```{r}
+Y = factor(as.numeric(as.factor(Train$cat)))
+tuneRF(Train[1:78],Y,ntreeTry = 300,plot=TRUE)
+```
+
+
+
+```{r echo=TRUE}
+Y = factor(as.numeric(as.factor(Train$cat)))
+rfTmp <- randomForest(Y~.,data=Train[,1:77],mTry = 18,ntree = 1000)
+rfTestPred <- predict(rfTmp,newdata=Test[,1:77])
+
+
+mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
+#tmpVals <- summPreds(as.numeric(factor(Test$cat)),as.numeric(rfTestPred))
+
+VI_F=importance(rfTmp)
+VI_F
+#pdf("Importance_plot.pdf")
+varImpPlot(rfTmp,type=2)
+#dev.off()
+
+# LNTreg1                    43.447022
+# LNTreg2                    27.107419
+# LNTreg3                    32.783442
+# LNTfr1                     53.615951
+# LNTfr2                     52.316917
+# LNTfr3                     67.765825
+# FoxF_CreN_ICOS_4           29.519462
+# pdf("Importance_plot.pdf")
+# partialPlot(rfTmp,x.var="LNTfr3",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="LNTfr1",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="LNTfr2",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="LNTreg1",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="LNTreg3",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="LNTreg2",pred.data = as.data.frame(Train),which.class = 2)
+# partialPlot(rfTmp,x.var="FoxF_CreN_ICOS_4",pred.data = as.data.frame(Train),which.class = 2)
+# dev.off()
+partialPlot(rfTmp,x.var="BloodTfr1",pred.data = as.data.frame(Train),which.class = 2)
+partialPlot(rfTmp,x.var="BloodTfr2",pred.data = as.data.frame(Train),which.class = 2)
+partialPlot(rfTmp,x.var="BloodTfr3",pred.data = as.data.frame(Train),which.class = 2)
+# 
+partialPlot(rfTmp,x.var="BloodTfr1",pred.data = as.data.frame(Train),which.class = 1)
+partialPlot(rfTmp,x.var="BloodTfr2",pred.data = as.data.frame(Train),which.class = 1)
+partialPlot(rfTmp,x.var="BloodTfr3",pred.data = as.data.frame(Train),which.class = 1)
+
+#library(dplyr)
+library(RColorBrewer)
+imp <- as.data.frame(VI_F)
+imp$varnames <- rownames(VI_F)
+imp = imp %>% arrange(MeanDecreaseGini)
+small = imp[65:77,]
+#imp = order(imp)
+dotchart(small$MeanDecreaseGini,labels = small$varnames,color = brewer.pal(n = 8, name = "Dark2"))
+
+
+ggplot(data = small, aes(x = MeanDecreaseGini,y = reorder(varnames, MeanDecreaseGini))) +
+geom_bar(stat="identity",fill = 'darkred')+
+labs(y = "Condition") +
+theme(legend.position = "top")
+
+
+
+p = ggplot(small, aes(x = MeanDecreaseGini, y = reorder(varnames, MeanDecreaseGini))) +
+  geom_point(aes(color = MeanDecreaseGini, size = MeanDecreaseGini), alpha = 0.5) 
+  p
+ ggsave(file="test.svg", plot=p, width=10, height=8)
+
+```
+
+
+
+```{r}
+library(readxl)
+TfhTfr_Exon_AllGenes_combined <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/TfhTfr_Exon_AllGenes_combined.xlsx")
+
+#Getting the class
+#rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86])
+rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:78],type = "class")
+#getting the probabilities
+rfTestPred_prob <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:78],type = "prob")
+
+#Here I am trying to get some random names for the GSEA gene set.
+random_names = character(2000)
+random_names = sample(TfhTfr_Exon_AllGenes_combined$`Feature ID`,2000)
+fileConn<-file("random_names.txt")
+writeLines(random_names, fileConn)
+close(fileConn)
+```
+
+2 is a Yes, 1 is a No
+```{r}
+TfhTfr_Exon_AllGenes_combined = cbind(TfhTfr_Exon_AllGenes_combined,rfTestPred)
+genes_vales = TfhTfr_Exon_AllGenes_combined[,c(1,78)]
+genes_vales = cbind(genes_vales,rfTestPred_prob)
+
+hist(as.numeric(genes_vales[,2]))
+```
+
+Here I generate an image of the final tree from the training/test data
+```{r}
+#rfTestPred_prob
+# options(repos='http://cran.rstudio.org')
+# have.packages <- installed.packages()
+# cran.packages <- c('devtools','plotrix','randomForest','tree')
+# to.install <- setdiff(cran.packages, have.packages[,1])
+# if(length(to.install)>0) install.packages(to.install)
+
+library(devtools)
+if(!('reprtree' %in% installed.packages())){
+  devtools::install_github('skinner927/reprtree')
+}
+for(p in c(cran.packages, 'reprtree')) eval(substitute(library(pkg), list(pkg=p)))
+library(reprtree)
+
+svg("TREE.svg",    width=20, height=20,pointsize = 5)
+reprtree:::plot.getTree(rfTmp)
+dev.off()
+
+```
+
+q-q plots of the p-values
+```{r}
+qqnorm(rfTestPred_prob, pch = 1, frame = FALSE)
+qqline(rfTestPred_prob, col = "steelblue", lwd = 2)
+```
+
+
+```{r}
+#genes_vales = cbind(genes_vales,rfTestPred_prob)
+Yes_columns = NULL
+Yes_columns = dplyr::filter( genes_vales, rfTestPred == 2 )
+Yes_columns = data.frame(Yes_columns)
+Yes_columns = Yes_columns[order(Yes_columns$X2,decreasing = TRUE),]
+Yes_columns_sub = Yes_columns[1:2000,]
+#View(Yes_columns_sub)
+
+
+TfhTfr_Exon_AllGenes_combined_Yes = NULL
+TfhTfr_Exon_AllGenes_combined_Yes = cbind(TfhTfr_Exon_AllGenes_combined,rfTestPred_prob)
+TfhTfr_Exon_AllGenes_combined_Yes = dplyr::filter( TfhTfr_Exon_AllGenes_combined_Yes, rfTestPred == 2 )
+TfhTfr_Exon_AllGenes_combined_Yes = data.frame(TfhTfr_Exon_AllGenes_combined_Yes)
+TfhTfr_Exon_AllGenes_combined_Yes = TfhTfr_Exon_AllGenes_combined_Yes[order(TfhTfr_Exon_AllGenes_combined_Yes$X2,decreasing = TRUE),]
+TfhTfr_Exon_AllGenes_combined_Yes_top_2000 = TfhTfr_Exon_AllGenes_combined_Yes[2:2000,]
+
+```
+
+```{r}
+library(pheatmap)
+
+#small heatmap
+genesList = c('Cxcr5','Icos','Pdcd1','Bcl6','Nrn1','Tnfrsf18','Gzmb','Sh2d1a','Prdm1','Cd44','Irf4','Ezh2','Il1r2','Cxcr7','Foxp3','Bcl6','Il2rg','Il2rb','Bcl6','Ctla4','Gata3','Id2','Il10','Maf')
+
+
+colsToUse = 8:13
+colsToUse = c(1,colsToUse)
+McolsToUse = c(colsToUse,20:25) # Just Spleen
+McolsToUse = c(McolsToUse,32:37) # Blood included
+Tcon_McolsToUse = c(McolsToUse,2:4,14:16,26:28) # Tcon included
+
+subsetYes = TfhTfr_Exon_AllGenes_combined_Yes[TfhTfr_Exon_AllGenes_combined_Yes$Feature.ID %in% genesList,colsToUse]
+
+Copy_subsetYes = as.matrix(subsetYes[,2:7])
+rownames(Copy_subsetYes) = subsetYes[,1]
+p = pheatmap(Copy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+p
+ggsave(file="subListYesGenes.svg", plot=p, width=10, height=8)
+
+#with more cell types
+More_cell_types = TfhTfr_Exon_AllGenes_combined_Yes[TfhTfr_Exon_AllGenes_combined_Yes$Feature.ID %in% genesList,McolsToUse]
+#MCopy_subsetYes = as.matrix(More_cell_types[,2:13]) # with just spleen
+MCopy_subsetYes = as.matrix(More_cell_types[,2:19]) #Blood included
+colsReorder = c(1:3,7:9,13:15,4:6,10:12,16:18)
+MCopy_subsetYes_reOrder = MCopy_subsetYes[,colsReorder] #re-ordered cols
+rownames(MCopy_subsetYes) = More_cell_types[,1]
+rownames(MCopy_subsetYes_reOrder) = More_cell_types[,1]
+View(MCopy_subsetYes_reOrder)
+p = pheatmap(MCopy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+p
+
+RC_p = pheatmap(MCopy_subsetYes_reOrder,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+RC_p
+ggsave(file="Proper_order_subListYesGenes_cell_types.svg", plot=RC_p, width=10, height=8)
+
+###############
+
+#adding Tcon
+T_con_More_cell_types = TfhTfr_Exon_AllGenes_combined_Yes[TfhTfr_Exon_AllGenes_combined_Yes$Feature.ID %in% genesList,Tcon_McolsToUse]
+#MCopy_subsetYes = as.matrix(More_cell_types[,2:13]) # with just spleen
+T_con_MCopy_subsetYes = as.matrix(T_con_More_cell_types[,2:28]) #Tcon included
+colsReorder = c(1:6,19:21,7:12,22:24,13:18,25:27)
+T_con_MCopy_subsetYes_reOrder = T_con_MCopy_subsetYes[,colsReorder] #re-ordered cols
+rownames(T_con_MCopy_subsetYes) = More_cell_types[,1]
+rownames(T_con_MCopy_subsetYes_reOrder) = More_cell_types[,1]
+View(T_con_MCopy_subsetYes_reOrder)
+
+T_con_RC_p = pheatmap(T_con_MCopy_subsetYes_reOrder,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+T_con_RC_p
+ggsave(file="Proper_order_subListYesGenes_cell_types_T_con_.svg", plot=T_con_RC_p, width=8, height=6)
+
+##########
+#large heatmap
+holder = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,8:13]
+#View(holder)
+holder = as.matrix(holder)
+
+rownames(holder) = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,1]
+
+
+heatmap(holder)
+
+p = pheatmap(holder,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+p
+ggsave(file="test.svg", plot=p, width=10, height=8)
+
+#large Top 50
+holder = NULL
+holder = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,McolsToUse]
+#View(holder)
+holder = as.matrix(holder[,2:19])
+
+rownames(holder) = TfhTfr_Exon_AllGenes_combined_Yes_top_2000[1:50,1]
+
+
+heatmap(holder)
+
+p = pheatmap(holder,cutree_rows = 2,cutree_cols = 8,scale = 'row',clustering_distance_cols = "canberra")
+p
+ggsave(file="test.svg", plot=p, width=10, height=8)
+
+```
+
+Here I am working on the hclust linkage to see if there is one that better fits the columns
+```{r}
+MCopy_subsetYes = as.matrix(More_cell_types[,2:19]) #Blood included
+colsReorder = c(1:3,7:9,13:15,4:6,10:12,16:18)
+MCopy_subsetYes_reOrder = MCopy_subsetYes[,colsReorder] #re-ordered cols
+rownames(MCopy_subsetYes) = More_cell_types[,1]
+rownames(MCopy_subsetYes_reOrder) = More_cell_types[,1]
+
+p = pheatmap(MCopy_subsetYes,cutree_rows = 2,cutree_cols = 2,scale = 'row')
+p
+
+RC_p = pheatmap(MCopy_subsetYes_reOrder,cutree_rows = 2,cutree_cols = 2,scale = 'row',clustering_distance_cols = "canberra")
+RC_p
+
+#method	
+ #"euclidean", "maximum", "manhattan", "canberra", "binary" or "minkowski". 
+
+# Ward Hierarchical Clustering
+d <- dist(MCopy_subsetYes_reOrder, method = "euclidean") # distance matrix
+fit_WD <- hclust(d, method="ward.D") 
+fit_WD2 <- hclust(d, method="ward.D2") 
+fit_S <- hclust(d, method="single") 
+fit_C <- hclust(d, method="complete") 
+fit_A <- hclust(d, method="average") 
+fit_MC <- hclust(d, method="mcquitty") 
+fit_M <- hclust(d, method="median")
+fit_CE <- hclust(d, method="centroid") 
+
+
+
+```
+
+
+
+
+```{r}
+
+library(gplots)
+#rownames(TfhTfr_Exon_AllGenes_combined_Yes) = TfhTfr_Exon_AllGenes_combined_Yes[,2]
+Ymatrix = unlist(TfhTfr_Exon_AllGenes_combined_Yes[1:5018,2:78])
+Ymatrix = as.numeric(Ymatrix)
+Ymatrix = matrix(Ymatrix,nrow = 5018,ncol = 78)
+
+heatmap(Ymatrix,symm = F,main = "Heatmap test",labRow = rownames(TfhTfr_Exon_AllGenes_combined_Yes))
+```
+
+Making the top calls for the other class.
+
+```{r}
+TfhTfr_Exon_AllGenes_combined_No = NULL
+TfhTfr_Exon_AllGenes_combined_No = cbind(TfhTfr_Exon_AllGenes_combined,rfTestPred_prob)
+TfhTfr_Exon_AllGenes_combined_No = dplyr::filter( TfhTfr_Exon_AllGenes_combined_No, rfTestPred == 1 )
+TfhTfr_Exon_AllGenes_combined_No = data.frame(TfhTfr_Exon_AllGenes_combined_No)
+TfhTfr_Exon_AllGenes_combined_No = TfhTfr_Exon_AllGenes_combined_No[order(TfhTfr_Exon_AllGenes_combined_No$X1,decreasing = TRUE),]
+TfhTfr_Exon_AllGenes_combined_No_top_1000 = TfhTfr_Exon_AllGenes_combined_No[1:1000,]
+
+```
+
+Looking at the top 50 from each class
+```{r}
+
+TfhTfr_Exon_AllGenes_combined_Yes_top_50 = TfhTfr_Exon_AllGenes_combined_Yes[1:50,]
+TfhTfr_Exon_AllGenes_combined_No_top_50 = TfhTfr_Exon_AllGenes_combined_No[1:50,]
+
+
+groupCalls = rbind(TfhTfr_Exon_AllGenes_combined_Yes_top_50,TfhTfr_Exon_AllGenes_combined_No_top_50)
+
+YNHeatmap_matrix = NULL
+YNHeatmap_matrix = unlist(groupCalls[2:100,2:81])
+YNHeatmap_matrix = as.numeric(YNHeatmap_matrix)
+YNHeatmap_matrix = matrix(YNHeatmap_matrix,nrow = 98,ncol = 81)
+
+heatmap(YNHeatmap_matrix,symm = F,main = "Heatmap test",labRow = rownames(groupCalls))
+image(YNHeatmap_matrix)
+
+```
+
+
+```{r}
+
+write.csv(as.data.frame(Yes_columns_sub),file = "TFR_model_results_top_1000_genes.csv")
+write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_Yes),file = "TFR_model_results_Yes_genes.csv")
+TfhTfr_Exon_AllGenes_combined_Yes_top_2000
+write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_Yes_top_2000),file = "TFR_model_results_Yes_genes_top_2000.csv")
+write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_No_top_1000),file = "TFR_model_results_No_genes_1000.csv")
+write.csv(as.data.frame(TfhTfr_Exon_AllGenes_combined_No_top_1000),file = "TFR_model_results_No_genes_1000.csv")
+write.csv(as.data.frame(groupCalls),file = "TFR_model_results_group.csv")
+```
+
+
