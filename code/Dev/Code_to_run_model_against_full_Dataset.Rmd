@@ -7,7 +7,6 @@ Loading packages
 
 ```{r message=FALSE, include=FALSE}
 library(dplyr)
-library(neuralnet)
 library(readxl)
 library(grid)
 library(corrplot)
@@ -58,7 +57,7 @@ Loading the data:
 ```{r}
 model_4_21_95wRAW = NULL
 model_2_7_21_new = NULL
-model_2_7_21_new <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/model_2_7_21_newV4.xlsx")
+model_2_7_21_new <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
 
 model_4_21_95wRAW <- model_2_7_21_new
 #library(tidyverse)
@@ -82,8 +81,8 @@ summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) 
     Train = NULL
     Test = NULL
     bTrain = sample(1:nrow(model_4_21_95wRAW),round(0.7*nrow(model_4_21_95wRAW)))
-    Train <- model_4_21_95wRAW[bTrain,2:87]
-    Test <- model_4_21_95wRAW[-bTrain,2:87]
+    Train <- model_4_21_95wRAW[bTrain,2:79]
+    Test <- model_4_21_95wRAW[-bTrain,2:79]
     Test = as.data.frame(Test)
               Train$cat = as.numeric(as.factor(Train$cat))
           Test$cat = as.numeric(as.factor(Test$cat))
@@ -93,15 +92,15 @@ summPreds <- function(inpPred,inpTruth,inpMetrNms=c("err","acc","sens","spec")) 
 
 ```{r}
 Y = factor(as.numeric(as.factor(Train$cat)))
-tuneRF(Train[1:85],Y,ntreeTry = 300,plot=TRUE)
+tuneRF(Train[1:78],Y,ntreeTry = 300,plot=TRUE)
 ```
 
 
 
 ```{r echo=TRUE}
 Y = factor(as.numeric(as.factor(Train$cat)))
-rfTmp <- randomForest(Y~.,data=Train[,1:85],mTry = 18,ntree = 1000)
-rfTestPred <- predict(rfTmp,newdata=Test[,1:85])
+rfTmp <- randomForest(Y~.,data=Train[,1:77],mTry = 18,ntree = 1000)
+rfTestPred <- predict(rfTmp,newdata=Test[,1:77])
 
 
 mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
@@ -142,7 +141,7 @@ library(RColorBrewer)
 imp <- as.data.frame(VI_F)
 imp$varnames <- rownames(VI_F)
 imp = imp %>% arrange(MeanDecreaseGini)
-small = imp[65:85,]
+small = imp[65:77,]
 #imp = order(imp)
 dotchart(small$MeanDecreaseGini,labels = small$varnames,color = brewer.pal(n = 8, name = "Dark2"))
 
@@ -169,9 +168,9 @@ TfhTfr_Exon_AllGenes_combined <- read_excel("C:/Users/Alos Diallo/Documents/GitH
 
 #Getting the class
 #rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86])
-rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86],type = "class")
+rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:78],type = "class")
 #getting the probabilities
-rfTestPred_prob <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:86],type = "prob")
+rfTestPred_prob <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:78],type = "prob")
 
 #Here I am trying to get some random names for the GSEA gene set.
 random_names = character(2000)
@@ -184,7 +183,7 @@ close(fileConn)
 2 is a Yes, 1 is a No
 ```{r}
 TfhTfr_Exon_AllGenes_combined = cbind(TfhTfr_Exon_AllGenes_combined,rfTestPred)
-genes_vales = TfhTfr_Exon_AllGenes_combined[,c(1,87)]
+genes_vales = TfhTfr_Exon_AllGenes_combined[,c(1,78)]
 genes_vales = cbind(genes_vales,rfTestPred_prob)
 
 hist(as.numeric(genes_vales[,2]))
@@ -193,11 +192,11 @@ hist(as.numeric(genes_vales[,2]))
 Here I generate an image of the final tree from the training/test data
 ```{r}
 #rfTestPred_prob
-options(repos='http://cran.rstudio.org')
-have.packages <- installed.packages()
-cran.packages <- c('devtools','plotrix','randomForest','tree')
-to.install <- setdiff(cran.packages, have.packages[,1])
-if(length(to.install)>0) install.packages(to.install)
+# options(repos='http://cran.rstudio.org')
+# have.packages <- installed.packages()
+# cran.packages <- c('devtools','plotrix','randomForest','tree')
+# to.install <- setdiff(cran.packages, have.packages[,1])
+# if(length(to.install)>0) install.packages(to.install)
 
 library(devtools)
 if(!('reprtree' %in% installed.packages())){
@@ -362,9 +361,9 @@ fit_CE <- hclust(d, method="centroid")
 
 library(gplots)
 #rownames(TfhTfr_Exon_AllGenes_combined_Yes) = TfhTfr_Exon_AllGenes_combined_Yes[,2]
-Ymatrix = unlist(TfhTfr_Exon_AllGenes_combined_Yes[1:5018,2:86])
+Ymatrix = unlist(TfhTfr_Exon_AllGenes_combined_Yes[1:5018,2:78])
 Ymatrix = as.numeric(Ymatrix)
-Ymatrix = matrix(v,nrow = 5018,ncol = 84)
+Ymatrix = matrix(Ymatrix,nrow = 5018,ncol = 78)
 
 heatmap(Ymatrix,symm = F,main = "Heatmap test",labRow = rownames(TfhTfr_Exon_AllGenes_combined_Yes))
 ```
@@ -391,9 +390,9 @@ TfhTfr_Exon_AllGenes_combined_No_top_50 = TfhTfr_Exon_AllGenes_combined_No[1:50,
 groupCalls = rbind(TfhTfr_Exon_AllGenes_combined_Yes_top_50,TfhTfr_Exon_AllGenes_combined_No_top_50)
 
 YNHeatmap_matrix = NULL
-YNHeatmap_matrix = unlist(groupCalls[2:100,2:86])
+YNHeatmap_matrix = unlist(groupCalls[2:100,2:81])
 YNHeatmap_matrix = as.numeric(YNHeatmap_matrix)
-YNHeatmap_matrix = matrix(YNHeatmap_matrix,nrow = 98,ncol = 84)
+YNHeatmap_matrix = matrix(YNHeatmap_matrix,nrow = 98,ncol = 81)
 
 heatmap(YNHeatmap_matrix,symm = F,main = "Heatmap test",labRow = rownames(groupCalls))
 image(YNHeatmap_matrix)

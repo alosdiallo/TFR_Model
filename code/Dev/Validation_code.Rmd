@@ -40,13 +40,8 @@ library(MASS)
 library(fitdistrplus)
 #BiocManager::install("preprocessCore")
 library(preprocessCore)
-library(MASS)
 library(class)
-library(ggplot2)
 library(reshape2)
-library(ROCR)
-library(e1071)
-library(GGally)
 library(klaR)
 library(randomForest)
 ```
@@ -108,6 +103,7 @@ bTrain = sample(1:nrow(model),round(0.7*nrow(model)),replace = TRUE)
 model2 = model[,c(1,cols_to_use,79)]
 dim(model2)
 size = ncol(model2) 
+size = size -1
 
 Train <- model2[bTrain,]
 Test <- model2[-bTrain,]
@@ -117,62 +113,62 @@ Test$cat = as.numeric(as.factor(Test$cat))
   
 
   # Changed logistic regression Test error:
-  glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
+  glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
   glmTestPred <- predict(glmTrain, newdata=Test[,2:size], type="response") > 0.5
   tmpVals <- summPreds(as.numeric(glmTestPred)+1,as.factor(Test$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LR",metric=names(tmpVals),value=tmpVals))
 
   # Changed logistic regression Training Error:
-  glmTrain <- glm(as.factor(cat)~.,data=Train[,2:size],family=binomial)
+  glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
   tmpVals <- summPreds(as.numeric(predict(glmTrain,type="response") > 0.5)+1,as.factor(Train$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="LR",metric=names(tmpVals),value=tmpVals))
   
   # Changed LDA Training Error:
-  ldaTrain <- lda(cat~.,data=Train[,2:size],cv = TRUE)
+  ldaTrain <- lda(Train$cat~.,data=Train[,2:size],cv = TRUE)
   ldaTestPred <- predict(ldaTrain, newdata=Train[,2:size])
   tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Train$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="LDA",metric=names(tmpVals),value=tmpVals))
   
   # Changed LDA Test Error:
-  ldaTrain <- lda(cat~.,data=Train[,2:size])
+  ldaTrain <- lda(Train$cat~.,data=Train[,2:size])
   ldaTestPred <- predict(ldaTrain, newdata=Test[,2:size])
   tmpVals <- summPreds(as.numeric(ldaTestPred$class),as.factor(Test$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="LDA",metric=names(tmpVals),value=tmpVals))
   
   # Changed NB Training Error:
   Data_log_transformed = log(Train[,2:size] + 1)
-  nbTrain <- naiveBayes(cat~.,data=Data_log_transformed)
+  nbTrain <- naiveBayes(Train$cat~.,data=Data_log_transformed)
   nbTrainPred = predict(nbTrain, newdata=Data_log_transformed)
   tmpVals = summPreds(as.numeric(nbTrainPred),Train$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="NB",metric=names(tmpVals),value=tmpVals))
   
   # Changed NB Test Error:
   Test_Data_log_transformed = log(Test[,2:size] + 1)
-  nbTrain <- naiveBayes(cat~.,data=Data_log_transformed)
+  nbTrain <- naiveBayes(Train$cat~.,data=Data_log_transformed)
   nbTestPred = predict(nbTrain, newdata=Test_Data_log_transformed)
   tmpVals = summPreds(as.numeric(nbTestPred),Test$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="NB",metric=names(tmpVals),value=tmpVals))
   
   # changed SVM Test Error:
-  svmResult = svm(factor(cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
+  svmResult = svm(factor(Train$cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
   svmTestPred = predict(svmResult, newdata=Test[,2:size])
   tmpVals = summPreds(as.numeric(predict(svmResult,newdata=Test[,2:size])),Test$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="SVM",metric=names(tmpVals),value=tmpVals))
   
   # changed SVM Training Error:
-  svmResult = svm(factor(cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
+  svmResult = svm(factor(Train$cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
   svmTestPred = predict(svmResult, newdata=Test[,2:size])
   tmpVals = summPreds(as.numeric(predict(svmResult,newdata=Train[,2:size])),Train$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="SVM",metric=names(tmpVals),value=tmpVals))
   
   # changed RF Test Error:
-  rfTmp <- randomForest(factor(cat)~.,data=Train[,2:size],mTry = 10)
+  rfTmp <- randomForest(factor(Train$cat)~.,data=Train[,2:size],mTry = 10)
   rfTestPred <- predict(rfTmp,newdata=Test)
   tmpVals <- summPreds(as.numeric(Test$cat),as.numeric(rfTestPred))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Test"),type="RF",metric=names(tmpVals),value=tmpVals))
   
   # changed RF Training Error:
-  rfTmp <- randomForest(factor(cat)~.,data=Train[,2:size],mTry = 10)
+  rfTmp <- randomForest(factor(Train$cat)~.,data=Train[,2:size],mTry = 10)
   rfTrainPred <- predict(rfTmp, newdata=Train[,2:size])
   tmpVals <- summPreds(as.numeric(rfTrainPred),Train$cat)
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="RF",metric=names(tmpVals),value=tmpVals))
