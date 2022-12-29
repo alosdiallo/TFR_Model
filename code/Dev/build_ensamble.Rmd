@@ -1,0 +1,85 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+
+```{r}
+model = NULL
+library(here)
+here("/Data/Training_Test_Set.xlsx")
+library(readxl)
+model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
+
+library(tidyverse)
+model %>% select_if(negate(is.numeric))
+
+dim(model)
+size = ncol(model) -1
+
+
+library(readxl)
+TfhTfr_Exon_AllGenes_combined <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/TfhTfr_Exon_AllGenes_combined.xlsx")
+
+```
+
+
+
+```{r}
+dfTmpLR <- NULL
+dfTmpRF <- NULL
+dfTmpNB <- NULL
+dfTmpLDA <- NULL
+dfTmpSVM <- NULL
+dfTmp = NULL
+svmTuneRes = NULL
+Train = NULL
+Test = NULL
+dfTmpKNN = NULL
+svmResult = NULL
+svmTestPred = NULL
+
+cols_to_use = 14:78
+bTrain = sample(1:nrow(model),round(0.7*nrow(model)),replace = TRUE)
+model2 = model[,c(1,cols_to_use,79)]
+size = ncol(model2) 
+size = size - 1
+TfhTfr_Exon_AllGenes_combined = TfhTfr_Exon_AllGenes_combined[,c(1,cols_to_use)]
+
+
+Train <- model2[bTrain,]
+Test <- model2[-bTrain,]
+Test = as.data.frame(Test)
+Train$cat = as.numeric(as.factor(Train$cat))
+Test$cat = as.numeric(as.factor(Test$cat))
+  
+
+  # Changed logistic regression Test error:
+  glmTrain <- glm(as.factor(Train$cat)~.,data=Train[,2:size],family=binomial)
+  glmTestPred <- predict(glmTrain,newdata=TfhTfr_Exon_AllGenes_combined[,2:size],type = "response") > 0.5
+
+  # changed SVM Test Error:
+  svmResult = svm(factor(Train$cat)~.,data=Train[,2:size],kernel="linear",cost = 1e+02) 
+  svmTestPred = predict(svmResult,newdata=TfhTfr_Exon_AllGenes_combined[,2:size],type = "class")
+  
+  # changed RF Test Error:
+  rfTmp <- randomForest(factor(Train$cat)~.,data=Train[,2:size],mTry = 10)
+  rfTestPred <- predict(rfTmp,newdata=TfhTfr_Exon_AllGenes_combined[,2:size],type = "class")
+```
+
+
+```{r}
+full_set_predictions = NULL
+LR = glmTestPred
+SVM = svmTestPred
+RF = rfTestPred
+full_set_predictions = cbind(TfhTfr_Exon_AllGenes_combined,LR,SVM,RF)
+
+write.csv(as.data.frame(full_set_predictions),file = "TFR_model_results.csv")
+```
+
+
+
+
