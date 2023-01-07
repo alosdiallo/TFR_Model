@@ -4,7 +4,43 @@ output: html_notebook
 ---
 
 
-
+```{r message=FALSE, include=FALSE}
+library(grid)
+library(corrplot)
+library(caret)
+library(e1071)
+library(ROCR)
+library(ggplot2)
+library(GGally)
+library(PerformanceAnalytics)
+library(factoextra)
+library(corrplot)
+library(Rtsne)
+library(FactoMineR)
+library(ggplot2)
+library(factoextra)
+library(survminer)
+library(ggcorrplot)
+library(readr)
+library(circlize)
+library(readxl)
+library(stringr)
+library(reshape)
+library(psych)
+library(ComplexHeatmap)
+library(ggpubr)
+library(readr)
+library(gridExtra)
+library(cowplot)
+library(MASS)
+library(fitdistrplus)
+#BiocManager::install("preprocessCore")
+library(preprocessCore)
+library(class)
+library(reshape2)
+library(klaR)
+library(randomForest)
+```
 
 ```{r}
 model = NULL
