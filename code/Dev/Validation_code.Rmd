@@ -85,19 +85,19 @@ Here we are testing out the different models.
 
 library(readxl)
 model <- read_excel("C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Data/Training_Test_Set.xlsx")
-
-for ( iSim in 1:100 ) {
+dfTmp = NULL
+dfTmp <- data.frame(resample = character(), type = character(), metric = character(), value = numeric())
 dfTmpLR <- NULL
 dfTmpRF <- NULL
 dfTmpNB <- NULL
 dfTmpLDA <- NULL
 dfTmpSVM <- NULL
-dfTmp = NULL
+
 svmTuneRes = NULL
 Train = NULL
 Test = NULL
 dfTmpKNN = NULL
-
+for ( iSim in 1:100 ) {
 cols_to_use = 14:78
 bTrain = sample(1:nrow(model),round(0.7*nrow(model)),replace = TRUE)
 model2 = model[,c(1,cols_to_use,79)]
@@ -186,7 +186,6 @@ Test$cat = as.numeric(as.factor(Test$cat))
   tmpVals <- summPreds(as.numeric(knnTrainPred),as.numeric(Train$cat))
   dfTmp <- rbind(dfTmp,data.frame(resample=c("Train"),type="KNN",metric=names(tmpVals),value=tmpVals))
   }
-  
   
 }
 

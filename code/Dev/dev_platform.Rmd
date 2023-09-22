@@ -284,17 +284,25 @@ Test$cat = as.numeric(as.factor(Test$cat))
 ```
 
 
+     resample type metric     value
+err      Test   LR    err 0.0242483
+acc      Test   LR    acc 0.9757517
+sens     Test   LR   sens 0.9803922
+spec     Test   LR   spec 0.9712092
+err3     Test  LDA    err 0.1978661
+acc3     Test  LDA    acc 0.8021339
 
-
+"err","acc","sens","spec"
 ```{r}
   
+v = NULL
+v = subset(dfTmp, resample=='Test')
+v = subset(v, type=='SVM')
+v = subset(v, metric=='spec')  
+ 
 
-v = log(Train[,2:size] + 1)
-  nbTrain <- naiveBayes(cat~.,data=v)
-  nbTrainPred = predict(nbTrain, newdata=v)
-  tmpVals = summPreds(as.numeric(nbTrainPred),Train$cat)
-  
-  
-  
+
+
+round(mean(v$value), digits = 2)
 ```
 

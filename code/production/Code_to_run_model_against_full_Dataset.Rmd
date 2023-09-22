@@ -98,9 +98,10 @@ tuneRF(Train[1:78],Y,ntreeTry = 300,plot=TRUE)
 
 
 ```{r echo=TRUE}
+
 Y = factor(as.numeric(as.factor(Train$cat)))
-rfTmp <- randomForest(Y~.,data=Train[,1:77],mTry = 18,ntree = 1000)
-rfTestPred <- predict(rfTmp,newdata=Test[,1:77])
+rfTmp <- randomForest(Y~.,data=Train[,2:size],mTry = 18,ntree = 1000)
+rfTestPred <- predict(rfTmp,newdata=Test)
 
 
 mseTest <- mean((as.numeric(factor(Test$cat))-as.numeric(rfTestPred))) #Calculating the mean squared error
@@ -159,7 +160,27 @@ p = ggplot(small, aes(x = MeanDecreaseGini, y = reorder(varnames, MeanDecreaseGi
  ggsave(file="test.svg", plot=p, width=10, height=8)
 
 ```
+Working
+```{r}
+# Order the data by MeanDecreaseGini in descending order
+imp = imp %>% arrange(-MeanDecreaseGini)
 
+# Extract top N variables
+N <- 25
+small = imp[1:N,] 
+# Plot
+# Plot
+p = ggplot(small, aes(x = MeanDecreaseGini, y = reorder(varnames, MeanDecreaseGini))) +
+  geom_point(aes(color = MeanDecreaseGini, size = MeanDecreaseGini), alpha = 0.5) +
+  ylab("Experiment") # Add this line to change the y-axis label
+  
+# Display plot
+print(p)
+
+# Save plot
+ggsave(file="C:/Users/Alos Diallo/Documents/GitHub/TFR_Model/Gini_index_importance.svg", plot=p, width=10, height=8)
+
+```
 
 
 ```{r}
